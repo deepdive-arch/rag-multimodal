@@ -131,6 +131,18 @@ npm run build
 
 `requirements.lock.txt` contém as versões Python exatas geradas após a instalação. `frontend/package-lock.json` é mantido pelo npm.
 
+## Compartilhamento seguro do código-fonte
+
+Valide o repositório e gere um pacote somente com arquivos versionados:
+
+```bash
+python tools/package_source.py --check
+python tools/package_source.py --output dist/Agent-RAG-source.zip
+```
+
+Nunca compacte manualmente a pasta inteira do projeto.
+Nunca compartilhe `.env`, `.tmp`, `.venv`, `node_modules` ou `.next`.
+
 ## Segurança local
 
 - uploads são gravados por streaming, com SHA-256, nome sanitizado e assinatura real;
