@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from core.config import Settings, get_settings
-from core.exceptions import FileNotFoundInCatalogError, IngestionError
+from core.exceptions import AppError, FileNotFoundInCatalogError, IngestionError, InvalidMediaError
 from db.catalog import Catalog, utc_now
 from services.embeddings import embed_media, embed_text, prepare_document_text
 from services.media import MediaItem, extract_items
@@ -55,15 +55,22 @@ def ingest_file(path: str | Path, original_name: str | None = None, *, force: bo
     created_vectors: list[str] = []
     try:
         items = extract_items(candidate, doc_id, settings)
+        if not items:
+            raise InvalidMediaError("O arquivo não contém conteúdo indexável.")
         vectors, rows, warnings = _build_vectors(items, record, doc_id, settings)
+        if not rows:
+            raise InvalidMediaError("O arquivo não contém conteúdo indexável.")
         created_vectors = [row["vector_id"] for row in rows]
         upsert_vectors(vectors, settings)
         _run(catalog.add_chunks(rows))
         _run(catalog.update_file_status(doc_id, "ready", chunks_count=len(rows), warnings=warnings))
         return IngestionResult(doc_id, name, file_type, len(rows), False, warnings)
+    except AppError:
+        _rollback(catalog, doc_id, created_vectors, settings, "Falha esperada durante a ingestão.")
+        raise
     except Exception as error:
         _rollback(catalog, doc_id, created_vectors, settings, error)
-        raise IngestionError("Falha ao ingerir o arquivo") from error
+        raise IngestionError("Falha inesperada durante a ingestão.") from error
 
 
 def delete_document(doc_id: str, settings: Settings | None = None) -> None:
@@ -124,14 +131,18 @@ def _build_vectors(items: list[MediaItem], record: dict[str, Any], doc_id: str, 
     return vectors, rows, warnings
 
 
-def _rollback(catalog: Catalog, doc_id: str, vector_ids: list[str], settings: Settings, error: Exception) -> None:
+def _rollback(catalog: Catalog, doc_id: str, vector_ids: list[str], settings: Settings, error: Exception | str) -> None:
     """Best-effort cleanup while keeping the original upload for diagnosis."""
     try:
         delete_vectors(vector_ids, settings)
     except Exception:
         logger.warning("ingestion_rollback_vectors_failed", extra={"doc_id": doc_id})
-    _run(catalog.delete_chunks(doc_id))
-    _run(catalog.update_file_status(doc_id, "failed", warnings=[], error_message=str(error)[:500]))
+    try:
+        _run(catalog.delete_chunks(doc_id))
+        message = error if isinstance(error, str) else "Falha inesperada durante a ingestão."
+        _run(catalog.update_file_status(doc_id, "failed", warnings=[], error_message=str(message)[:500]))
+    except Exception:
+        logger.warning("ingestion_rollback_catalog_failed", extra={"doc_id": doc_id})
 
 
 def _warnings(record: dict[str, Any]) -> list[str]:

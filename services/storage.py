@@ -3,9 +3,11 @@
 import hashlib
 import re
 import shutil
-from uuid import uuid4
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from uuid import uuid4
+
 import filetype
 
 from core.config import Settings, get_settings
@@ -119,34 +121,85 @@ def safe_storage_path(storage_key: str, settings: Settings | None = None) -> Pat
 
 
 def validate_signature(path: Path, extension: str) -> None:
-    """Validate the real file signature enough to reject renamed uploads."""
-    header = path.read_bytes()[:4096]
+    """Validate the real file signature without loading the whole file."""
+    with path.open("rb") as stream:
+        header = stream.read(4096)
     kind = filetype.guess(header)
     known_mime = kind.mime if kind else ""
-    if extension in {".txt", ".md"}:
-        try:
-            header.decode("utf-8")
-        except UnicodeDecodeError as error:
-            raise UnsupportedFileError("Arquivo de texto não é UTF-8 válido") from error
+    if extension in TEXT_EXTENSIONS:
+        _validate_text_header(header)
         return
     if extension == ".pdf" and not header.startswith(b"%PDF-"):
         raise UnsupportedFileError("Assinatura PDF inválida")
-    if extension == ".docx" and (not header.startswith(b"PK") or b"[Content_Types].xml" not in path.read_bytes()[:1024 * 1024]):
-        raise UnsupportedFileError("Assinatura DOCX inválida")
-    if extension in {".png", ".jpg", ".jpeg", ".gif", ".webp"} and not known_mime.startswith("image/"):
+    if extension == ".docx":
+        _validate_docx_package(path)
+        return
+    if extension in IMAGE_EXTENSIONS and not known_mime.startswith("image/"):
         raise UnsupportedFileError("Assinatura de imagem inválida")
-    if extension in {".mp3", ".wav"} and known_mime and not known_mime.startswith("audio/") and not header.startswith((b"ID3", b"RIFF")):
+    if extension in AUDIO_EXTENSIONS and known_mime and not known_mime.startswith("audio/") and not header.startswith((b"ID3", b"RIFF")):
         raise UnsupportedFileError("Assinatura de áudio inválida")
-    if extension in {".mp4", ".mov"} and not (b"ftyp" in header[:64] or known_mime.startswith("video/")):
+    if extension in VIDEO_EXTENSIONS and not (b"ftyp" in header[:64] or known_mime.startswith("video/")):
         raise UnsupportedFileError("Assinatura de vídeo inválida")
 
 
+def _validate_text_header(header: bytes) -> None:
+    """Reject a text upload whose sampled bytes are not UTF-8."""
+    try:
+        header.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise UnsupportedFileError("Arquivo de texto não é UTF-8 válido") from error
+
+
+def _validate_docx_package(path: Path) -> None:
+    """Require the two structural entries that identify a DOCX package."""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            required = {"[Content_Types].xml", "word/document.xml"}
+            if not required.issubset(archive.namelist()):
+                raise UnsupportedFileError("Assinatura DOCX inválida")
+    except zipfile.BadZipFile as error:
+        raise UnsupportedFileError("Assinatura DOCX inválida") from error
+
+
+def _temporary_path(settings: Settings, prefix: str) -> Path:
+    """Create a unique path inside the controlled storage directory."""
+    return settings.uploads_dir / f".{prefix}-{uuid4().hex}"
+
+
+def _copy_path(source: Path, temporary: Path, limit: int) -> tuple[str, int]:
+    """Copy a path incrementally while enforcing the configured limit."""
+    digest = hashlib.sha256()
+    size = 0
+    with source.open("rb") as reader, temporary.open("wb") as writer:
+        for block in iter(lambda: reader.read(1024 * 1024), b""):
+            size += len(block)
+            if size > limit:
+                raise FileTooLargeError("Arquivo excede o limite configurado")
+            digest.update(block)
+            writer.write(block)
+    return digest.hexdigest(), size
+
+
+def _reuse_existing(destination: Path, temporary: Path, sha256: str, size: int, extension: str) -> StoredUpload | None:
+    """Reuse a destination only after checking its integrity and signature."""
+    if not destination.exists():
+        return None
+    if not destination.is_file() or destination.stat().st_size != size or sha256_for_path(destination) != sha256:
+        raise InvalidMediaError("Arquivo existente no storage não corresponde ao upload")
+    try:
+        validate_signature(destination, extension)
+    except UnsupportedFileError as error:
+        raise InvalidMediaError("Arquivo existente no storage é inválido") from error
+    temporary.unlink(missing_ok=True)
+    return StoredUpload(destination, sha256, destination.name, size)
+
+
 async def save_upload_stream(upload: object, filename: str | None, settings: Settings | None = None) -> StoredUpload:
-    """Save an UploadFile-like object in bounded chunks while hashing it."""
+    """Save an UploadFile-like object in bounded chunks while validating before promotion."""
     settings = settings or get_settings()
     safe_name = sanitize_filename(filename)
     extension = extension_for(safe_name)
-    temporary = settings.uploads_dir / f".uploading-{uuid4().hex}"
+    temporary = _temporary_path(settings, "uploading")
     digest = hashlib.sha256()
     size = 0
     try:
@@ -161,14 +214,13 @@ async def save_upload_stream(upload: object, filename: str | None, settings: Set
                 digest.update(block)
                 target.write(block)
         sha256 = digest.hexdigest()
-        stored_name = f"{sha256}_{safe_name}"
-        destination = settings.uploads_dir / stored_name
-        if destination.exists():
-            temporary.unlink(missing_ok=True)
-            return StoredUpload(destination, sha256, stored_name, size)
+        destination = settings.uploads_dir / f"{sha256}_{safe_name}"
+        validate_signature(temporary, extension)
+        reused = _reuse_existing(destination, temporary, sha256, size, extension)
+        if reused:
+            return reused
         temporary.replace(destination)
-        validate_signature(destination, extension)
-        return StoredUpload(destination, sha256, stored_name, size)
+        return StoredUpload(destination, sha256, destination.name, size)
     except Exception:
         temporary.unlink(missing_ok=True)
         raise
@@ -182,15 +234,19 @@ def stage_existing_file(path: Path, settings: Settings | None = None) -> StoredU
         raise InvalidMediaError("Arquivo de entrada não encontrado")
     safe_name = sanitize_filename(source.name)
     extension = extension_for(safe_name)
-    size = source.stat().st_size
-    if size > settings.max_upload_size_bytes:
-        raise FileTooLargeError(f"Arquivo excede o limite de {settings.max_upload_size_mb} MB")
-    sha256 = sha256_for_path(source)
-    destination = settings.uploads_dir / f"{sha256}_{safe_name}"
-    if source != destination and not destination.exists():
-        shutil.copyfile(source, destination)
-    validate_signature(destination, extension)
-    return StoredUpload(destination, sha256, destination.name, size)
+    temporary = _temporary_path(settings, "staging")
+    try:
+        sha256, size = _copy_path(source, temporary, settings.max_upload_size_bytes)
+        destination = settings.uploads_dir / f"{sha256}_{safe_name}"
+        validate_signature(temporary, extension)
+        reused = _reuse_existing(destination, temporary, sha256, size, extension)
+        if reused:
+            return reused
+        temporary.replace(destination)
+        return StoredUpload(destination, sha256, destination.name, size)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def remove_storage(storage_key: str, settings: Settings | None = None) -> None:

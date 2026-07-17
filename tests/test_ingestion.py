@@ -1,6 +1,10 @@
 from pathlib import Path
 
+import pytest
+
 from core.config import Settings
+from core.exceptions import IngestionError, InvalidMediaError, UnsupportedFileError
+from services.media import MediaItem
 from services.ingestion import ingest_file
 
 
@@ -15,3 +19,48 @@ def test_ingestion_success_and_duplicate(monkeypatch, tmp_path: Path):
     second = ingest_file(source, "file.txt")
     assert first.duplicate is False
     assert second.duplicate is True
+
+
+def test_ingestion_preserves_expected_error(monkeypatch, tmp_path: Path):
+    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    source = settings.uploads_dir / "bad.txt"
+    source.write_text("conteúdo", encoding="utf-8")
+    monkeypatch.setattr("services.ingestion.get_settings", lambda: settings)
+    monkeypatch.setattr("services.ingestion.extract_items", lambda *args: (_ for _ in ()).throw(UnsupportedFileError("Assinatura inválida")))
+    with pytest.raises(UnsupportedFileError, match="Assinatura"):
+        ingest_file(source, "bad.txt")
+
+
+def test_unexpected_ingestion_error_is_generic(monkeypatch, tmp_path: Path):
+    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    source = settings.uploads_dir / "broken.txt"
+    source.write_text("conteúdo", encoding="utf-8")
+    monkeypatch.setattr("services.ingestion.get_settings", lambda: settings)
+    monkeypatch.setattr("services.ingestion.extract_items", lambda *args: (_ for _ in ()).throw(RuntimeError("path secret")))
+    with pytest.raises(IngestionError, match="inesperada"):
+        ingest_file(source, "broken.txt")
+
+
+def test_zero_items_are_not_marked_ready(monkeypatch, tmp_path: Path):
+    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    source = settings.uploads_dir / "empty.txt"
+    source.write_text("conteúdo", encoding="utf-8")
+    monkeypatch.setattr("services.ingestion.get_settings", lambda: settings)
+    monkeypatch.setattr("services.ingestion.extract_items", lambda *args: [])
+    with pytest.raises(InvalidMediaError, match="indexável"):
+        ingest_file(source, "empty.txt")
+
+
+def test_rollback_attempts_vector_cleanup(monkeypatch, tmp_path: Path):
+    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    source = settings.uploads_dir / "rollback.txt"
+    source.write_text("conteúdo", encoding="utf-8")
+    deleted: list[str] = []
+    monkeypatch.setattr("services.ingestion.get_settings", lambda: settings)
+    monkeypatch.setattr("services.ingestion.extract_items", lambda *args: [MediaItem("conteúdo", "text", "text")])
+    monkeypatch.setattr("services.ingestion.embed_text", lambda text, current: [0.0] * current.embedding_dimension)
+    monkeypatch.setattr("services.ingestion.delete_vectors", lambda ids, current: deleted.extend(ids))
+    monkeypatch.setattr("services.ingestion.upsert_vectors", lambda *args: (_ for _ in ()).throw(RuntimeError("pinecone")))
+    with pytest.raises(IngestionError):
+        ingest_file(source, "rollback.txt")
+    assert deleted
