@@ -1,6 +1,7 @@
 """Safe local storage and streaming upload helpers."""
 
 import hashlib
+import logging
 import re
 import shutil
 import zipfile
@@ -12,6 +13,9 @@ import filetype
 
 from core.config import Settings, get_settings
 from core.exceptions import FileTooLargeError, InvalidMediaError, UnsupportedFileError
+
+
+logger = logging.getLogger("rag_multimodal.storage")
 
 
 TEXT_EXTENSIONS = {".txt", ".md"}
@@ -184,14 +188,24 @@ def _reuse_existing(destination: Path, temporary: Path, sha256: str, size: int, 
     """Reuse a destination only after checking its integrity and signature."""
     if not destination.exists():
         return None
-    if not destination.is_file() or destination.stat().st_size != size or sha256_for_path(destination) != sha256:
-        raise InvalidMediaError("Arquivo existente no storage não corresponde ao upload")
+    try:
+        valid_integrity = destination.is_file() and destination.stat().st_size == size and sha256_for_path(destination) == sha256
+    except OSError as error:
+        _reject_existing_destination("stat_or_hash_error", error)
+    if not valid_integrity:
+        _reject_existing_destination("integrity_mismatch")
     try:
         validate_signature(destination, extension)
     except UnsupportedFileError as error:
-        raise InvalidMediaError("Arquivo existente no storage é inválido") from error
+        _reject_existing_destination("signature_invalid", error)
     temporary.unlink(missing_ok=True)
     return StoredUpload(destination, sha256, destination.name, size)
+
+
+def _reject_existing_destination(reason: str, error: Exception | None = None) -> None:
+    """Log safe integrity evidence and reject a conflicting destination."""
+    logger.error("storage_destination_integrity_failed", extra={"reason": reason})
+    raise InvalidMediaError("Arquivo existente no storage não pôde ser validado") from error
 
 
 async def save_upload_stream(upload: object, filename: str | None, settings: Settings | None = None) -> StoredUpload:
