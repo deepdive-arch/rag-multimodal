@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+:root { color-scheme: dark; }
+html, body { height: 100%; }
+body { margin: 0; background: #0d1112; color: #e5e5e5; font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; }
+button, input, textarea, select { font: inherit; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a3636; border-radius: 9999px; }
+*:focus-visible { outline: 2px solid #e8b16b; outline-offset: 2px; }
+.font-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; }
+.font-mono { font-family: var(--font-mono), ui-monospace, monospace; }
+.action-button { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 0.5rem; padding: 0.35rem 0.5rem; color: #82908b; font-size: 0.7rem; transition: color 150ms, background 150ms; }
+.action-button:hover { background: #222b2b; color: #e8b16b; }
+.action-button:disabled { cursor: not-allowed; opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }

@@ -1,0 +1,165 @@
+# RAG Multimodal
+
+MVP local de RAG multimodal para consultar documentos, imagens, PDFs, áudios e vídeos com respostas fundamentadas e fontes verificáveis.
+
+## Arquitetura
+
+```text
+Next.js 16 / React              FastAPI
+sidebar + chat + fontes  <----> upload, query, feedback
+localStorage                    SQLite + storage local
+                                      |
+                              Gemini + Pinecone
+```
+
+O backend segue a separação WAT: `workflows/` documenta runbooks, `tools/` contém wrappers CLI pequenos e a lógica vive em `core/`, `db/` e `services/`.
+
+## Stack e pré-requisitos
+
+- Python 3.12 ou superior (testado localmente com Python 3.13);
+- Node.js 20.9 ou superior (testado localmente com Node 24);
+- npm 10 ou superior;
+- chave da API Gemini;
+- chave da API Pinecone;
+- Windows, Linux e macOS.
+
+## Instalação
+
+### Backend
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+Linux/macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Preencha `GOOGLE_API_KEY` e `PINECONE_API_KEY` no `.env`. Não versione `.env`.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+copy .env.local.example .env.local   # PowerShell: Copy-Item .env.local.example .env.local
+```
+
+O frontend usa `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` por padrão.
+
+## Pinecone
+
+Crie ou valide o índice de forma idempotente:
+
+```bash
+python tools/setup_pinecone.py
+```
+
+O índice é dense, 1536 dimensões, cosine, AWS `us-east-1`. A aplicação manipula apenas o namespace configurado em `PINECONE_NAMESPACE` e nunca recria automaticamente um índice incompatível.
+
+## Execução
+
+Backend:
+
+```bash
+# Windows PowerShell (sem depender do Python global)
+.venv\Scripts\python.exe -m uvicorn api.server:app --reload --host 127.0.0.1 --port 8000
+
+# Linux/macOS
+.venv/bin/python -m uvicorn api.server:app --reload --host 127.0.0.1 --port 8000
+```
+
+No Windows, também é possível ativar o ambiente antes e usar `python -m uvicorn`:
+
+```powershell
+.venv\Scripts\Activate.ps1
+python -m uvicorn api.server:app --reload --host 127.0.0.1 --port 8000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Acesse `http://localhost:3000`.
+
+## Formatos e limites
+
+Suportados: `.txt`, `.md`, `.docx`, `.pdf`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.mp4`, `.mov`, `.mp3` e `.wav`.
+
+O limite padrão é 100 MB, PDFs têm limite de 200 páginas, áudios de 180 segundos e vídeos de 120 segundos. GIFs usam apenas o primeiro frame; WebP e GIF são normalizados para JPEG; a faixa de áudio interna de vídeos não é indexada; não há transcrição nem OCR externo.
+
+## CLI
+
+```bash
+python tools/ingest.py documentos/
+python tools/ingest.py contrato.pdf --force
+python tools/query_rag.py "Qual é o prazo definido no contrato?"
+python tools/query_rag.py "Quais são as obrigações?" --file-type pdf
+python tools/query_rag.py "Mostre apenas as evidências" --mode evidence
+```
+
+## Testes e qualidade
+
+Backend:
+
+```bash
+ruff check .
+pytest -q
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+npm run typecheck
+npm run build
+```
+
+`requirements.lock.txt` contém as versões Python exatas geradas após a instalação. `frontend/package-lock.json` é mantido pelo npm.
+
+## Segurança local
+
+- uploads são gravados por streaming, com SHA-256, nome sanitizado e assinatura real;
+- caminhos absolutos não entram no SQLite, Pinecone ou respostas da API;
+- SQL usa parâmetros e o frontend não envia filtros Pinecone arbitrários;
+- erros não expõem stack traces, chaves, tokens, vetores ou conteúdo integral;
+- `DELETE /api/files/{doc_id}` e `DELETE /api/index` exigem `X-Admin-Token` quando `ADMIN_TOKEN` estiver configurado;
+- em `APP_ENV=production`, `ADMIN_TOKEN` é obrigatório;
+- conteúdo indexado é tratado como dado, nunca como instrução de sistema.
+
+## Exclusão
+
+Excluir um arquivo remove vetores, catálogo, original e derivados somente depois da exclusão externa ser confirmada. Limpar o índice exige a confirmação `DELETE_ALL` e apaga somente os vetores do namespace configurado; o índice Pinecone não é destruído.
+
+## Estrutura
+
+- `api/`: FastAPI, schemas e dependências;
+- `core/`: configuração, exceções e logging;
+- `db/`: migrations e catálogo SQLite;
+- `services/`: storage, mídia, chunking, ingestão, embeddings, Pinecone, retrieval e generation;
+- `tools/`: CLIs determinísticos;
+- `frontend/`: aplicação Next.js;
+- `.tmp/`: uploads, derivados e banco descartáveis;
+- `workflows/`: runbooks operacionais.
+
+## Troubleshooting
+
+- Health `degraded`: confirme que o backend está rodando e que `.env` está no diretório raiz.
+- Gemini/Pinecone não configurados: a aplicação inicia, mas ingestão e consulta retornam erro seguro.
+- Índice incompatível: revise dimensão, métrica, cloud, região e namespace; a aplicação não recria o índice automaticamente.
+- Arquivo rejeitado: confirme extensão, MIME real, assinatura, tamanho e duração.
+- Para reprocessar arquivo com status `failed`, use `--force` no CLI.

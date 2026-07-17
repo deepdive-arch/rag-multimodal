@@ -1,0 +1,24 @@
+# Segredos e credenciais locais
+.env
+frontend/.env.local
+credentials.json
+token.json
+
+# Intermediários regeneráveis
+.tmp/*
+!.tmp/.gitkeep
+
+# Cache e artefatos Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo

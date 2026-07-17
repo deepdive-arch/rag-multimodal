@@ -1,0 +1,17 @@
+google-genai>=2.12,<3
+pinecone>=9,<10
+PyMuPDF>=1.28,<2
+python-docx>=1.1,<2
+Pillow>=12,<13
+fastapi>=0.129,<1
+uvicorn[standard]>=0.51,<1
+python-multipart>=0.0.20,<1
+pydantic-settings>=2,<3
+aiosqlite>=0.20,<1
+filetype>=1.2,<2
+opencv-python-headless>=4,<5
+mutagen>=1.47,<2
+httpx>=0.28,<1
+pytest>=8,<9
+pytest-asyncio>=0.25,<1
+ruff>=0.9,<1
