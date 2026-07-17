@@ -1,13 +1,110 @@
-import { FileArchive, FileAudio, FileImage, FileText, FileVideo, MessageSquare, SlidersHorizontal, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronUp, FileArchive, FileAudio, FileImage, FileText, FileVideo, Network, Trash2 } from "lucide-react"
+import type { Ref } from "react"
+import { useState } from "react"
 import { FileFilters } from "@/components/FileFilters"
 import { UploadDropzone } from "@/components/UploadDropzone"
 import type { AnswerMode, FileType, IngestedFile, QueryFilters } from "@/types"
 
-interface SidebarProps { files: IngestedFile[]; filters: QueryFilters; topK: number; answerMode: AnswerMode; isUploading: boolean; uploadSummary: { success: number; errors: string[]; catalogError: string }; onFiles: (files: File[]) => Promise<void>; onFilters: (filters: QueryFilters) => void; onTopK: (value: number) => void; onAnswerMode: (mode: AnswerMode) => void; onDelete: (file: IngestedFile) => void; onClearChat: () => void; onClearIndex: () => void }
+interface SidebarProps {
+  files: IngestedFile[]
+  filters: QueryFilters
+  topK: number
+  answerMode: AnswerMode
+  isUploading: boolean
+  uploadSummary: { success: number; errors: string[]; catalogError: string }
+  sidebarRef?: Ref<HTMLElement>
+  onFiles: (files: File[]) => Promise<void>
+  onFilters: (filters: QueryFilters) => void
+  onTopK: (value: number) => void
+  onAnswerMode: (mode: AnswerMode) => void
+  onDelete: (file: IngestedFile) => void
+  onClearChat: () => void
+  onClearIndex: () => void
+}
 
-function FileIcon({ type }: { type: FileType }) { if (type === "image") return <FileImage size={15} />; if (type === "video") return <FileVideo size={15} />; if (type === "audio") return <FileAudio size={15} />; return type === "text" || type === "docx" ? <FileText size={15} /> : <FileArchive size={15} /> }
-function formatSize(bytes: number) { if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB` }
+function FileIcon({ type }: { type: FileType }) {
+  if (type === "image") return <FileImage size={16} />
+  if (type === "video") return <FileVideo size={16} />
+  if (type === "audio") return <FileAudio size={16} />
+  return type === "text" || type === "docx" ? <FileText size={16} /> : <FileArchive size={16} />
+}
 
-export function Sidebar(props: SidebarProps) {
-  return <aside className="flex h-full w-full flex-col border-r border-[#273132] bg-[#101516] p-4 md:w-[312px] md:shrink-0"><div className="mb-5 flex items-center gap-3"><div className="flex size-9 items-center justify-center rounded-xl bg-[#2d665f] text-[#f2c17d]"><MessageSquare size={18} /></div><div><p className="font-display text-sm font-semibold text-[#f0e8dc]">RAG Multimodal</p><p className="text-[10px] text-[#73817e]">Base de conhecimento inteligente</p></div></div><div className="space-y-5 overflow-y-auto pr-1"><UploadDropzone isUploading={props.isUploading} uploadSummary={props.uploadSummary} onFiles={props.onFiles} /><section className="space-y-3"><div className="flex items-center justify-between"><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#6f7d7a]">Arquivos</p><span className="rounded-full bg-[#222c2c] px-2 py-0.5 font-mono text-[10px] text-[#a8b9b2]">{props.files.length}</span></div>{props.files.length === 0 ? <p className="rounded-xl border border-dashed border-[#2b3637] p-4 text-xs leading-5 text-[#687572]">A base ainda está vazia. Adicione um arquivo para começar.</p> : <div className="space-y-1.5">{props.files.map((file) => <div key={file.doc_id} className={`group flex items-center gap-2 rounded-xl border px-2.5 py-2 ${props.filters.doc_id === file.doc_id ? "border-[#7ccbc4]/50 bg-[#1a2927]" : "border-transparent bg-[#151b1c]"}`}><button type="button" onClick={() => props.onFilters(props.filters.doc_id === file.doc_id ? {} : { doc_id: file.doc_id })} className="flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8b16b]"><span className="text-[#e8b16b]"><FileIcon type={file.file_type} /></span><span className="min-w-0"><span className="block truncate text-xs text-[#d6dfd9]">{file.name}</span><span className="block text-[10px] text-[#73817e]">{file.chunks} chunks · {formatSize(file.size_bytes)}</span></span></button><button type="button" aria-label={`Excluir ${file.name}`} onClick={() => props.onDelete(file)} className="rounded p-1.5 text-[#63716d] opacity-0 transition hover:bg-[#3a2421] hover:text-[#f08f7d] group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8b16b]"><Trash2 size={13} /></button></div>)}</div>}</section><FileFilters files={props.files} filters={props.filters} onChange={props.onFilters} /><section className="space-y-3"><div className="flex items-center justify-between"><label htmlFor="top-k" className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#6f7d7a]"><SlidersHorizontal size={12} /> Top K</label><span className="rounded-full bg-[#2c3934] px-2 py-0.5 font-mono text-[10px] text-[#e8b16b]">{props.topK}</span></div><input id="top-k" type="range" min="1" max="20" value={props.topK} onChange={(event) => props.onTopK(Number(event.target.value))} className="w-full accent-[#e8b16b]" /><label htmlFor="answer-mode" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#6f7d7a]">Modo de resposta</label><select id="answer-mode" value={props.answerMode} onChange={(event) => props.onAnswerMode(event.target.value as AnswerMode)} className="w-full rounded-lg border border-[#2b3637] bg-[#141a1b] px-3 py-2 text-xs text-[#bdc8c4] outline-none focus:border-[#7ccbc4]"><option value="quick">Rápida</option><option value="detailed">Detalhada</option><option value="evidence">Somente evidências</option></select></section></div><div className="mt-auto flex gap-2 border-t border-[#273132] pt-4"><button type="button" onClick={props.onClearChat} className="flex-1 rounded-lg border border-[#2b3637] px-3 py-2 text-xs text-[#8b9894] transition hover:border-[#7ccbc4] hover:text-[#dce8df]">Limpar chat</button><button type="button" onClick={props.onClearIndex} className="flex-1 rounded-lg border border-[#513633] px-3 py-2 text-xs text-[#e49b87] transition hover:bg-[#3a2421]">Limpar índice</button></div></aside>
+function formatSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function statusLabel(status: IngestedFile["status"]) {
+  if (status === "processing") return "Processando…"
+  if (status === "failed") return "Falha"
+  if (status === "deleting") return "Removendo…"
+  return "Pronto"
+}
+
+export function Sidebar({ sidebarRef, ...props }: SidebarProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  return (
+    <aside id="rag-sidebar" ref={sidebarRef} tabIndex={-1} aria-label="Biblioteca de arquivos" className="sidebar-shell">
+      <header className="brand-block">
+        <div className="brand-mark" aria-hidden="true"><Network size={20} /></div>
+        <div className="brand-copy">
+          <p className="brand-eyebrow">RAG multimodal</p>
+          <p className="brand-title">Biblioteca semântica</p>
+          <p className="brand-subtitle">Perguntas ancoradas nos seus arquivos</p>
+        </div>
+      </header>
+      <div className="sidebar-scroll-area">
+        <UploadDropzone isUploading={props.isUploading} uploadSummary={props.uploadSummary} onFiles={props.onFiles} />
+        <section className="sidebar-section files-section" aria-labelledby="files-heading">
+          <div className="section-heading">
+            <p id="files-heading" className="section-kicker">Arquivos</p>
+            <span className="count-badge" aria-label={`${props.files.length} arquivos`}>{props.files.length}</span>
+          </div>
+          <div className="file-list">
+            {props.files.length === 0 ? <p className="file-list-empty">A biblioteca está vazia. Adicione um arquivo para começar.</p> : props.files.map((file) => {
+              const selected = props.filters.doc_id === file.doc_id
+              return <div key={file.doc_id} className={`file-row ${selected ? "is-selected" : ""}`}>
+                <button type="button" className="file-row-main" aria-pressed={selected} onClick={() => props.onFilters(selected ? {} : { doc_id: file.doc_id })}>
+                  <span className="file-icon" aria-hidden="true"><FileIcon type={file.file_type} /></span>
+                  <span className="file-copy">
+                    <span className="file-name" title={file.name}>{file.name}</span>
+                    <span className="file-meta">{file.chunks} trechos · {formatSize(file.size_bytes)}</span>
+                    <span className={`file-state ${file.status === "ready" ? "ready" : file.status === "failed" ? "failed" : "processing"}`} role={file.status === "processing" ? "status" : undefined}>{statusLabel(file.status)}</span>
+                  </span>
+                </button>
+                <button type="button" className="file-delete" aria-label={`Excluir ${file.name}`} onClick={() => props.onDelete(file)}><Trash2 aria-hidden="true" size={15} /></button>
+              </div>
+            })}
+          </div>
+        </section>
+        <FileFilters files={props.files} filters={props.filters} onChange={props.onFilters} />
+        <section className="sidebar-section" aria-labelledby="settings-heading">
+          <button type="button" className="settings-trigger" aria-expanded={settingsOpen} aria-controls="query-settings" onClick={() => setSettingsOpen((current) => !current)}>
+            <span id="settings-heading">Ajustes da consulta</span>
+            {settingsOpen ? <ChevronUp aria-hidden="true" size={16} /> : <ChevronDown aria-hidden="true" size={16} />}
+          </button>
+          {settingsOpen && <div id="query-settings" className="settings-panel">
+            <div>
+              <label className="field-label" htmlFor="top-k"><span>Quantidade de fontes</span><span className="range-output">{props.topK}</span></label>
+              <p className="field-help">Define quantos trechos relevantes serão considerados.</p>
+              <input id="top-k" className="mt-2 w-full accent-[var(--accent)]" type="range" min="1" max="20" value={props.topK} onChange={(event) => props.onTopK(Number(event.target.value))} />
+            </div>
+            <div>
+              <label className="field-label" htmlFor="answer-mode">Modo de resposta</label>
+              <select id="answer-mode" className="settings-select mt-2" value={props.answerMode} onChange={(event) => props.onAnswerMode(event.target.value as AnswerMode)}>
+                <option value="quick">Rápida</option>
+                <option value="detailed">Detalhada</option>
+                <option value="evidence">Somente evidências</option>
+              </select>
+            </div>
+          </div>}
+        </section>
+      </div>
+      <footer className="sidebar-footer">
+        <p className="section-kicker">Mais ações</p>
+        <button type="button" className="secondary-button" onClick={props.onClearChat}>Limpar conversa</button>
+        <button type="button" className="danger-button" onClick={props.onClearIndex}>Limpar base</button>
+      </footer>
+    </aside>
+  )
 }

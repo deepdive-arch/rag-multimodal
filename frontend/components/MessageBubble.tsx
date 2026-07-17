@@ -6,7 +6,24 @@ import type { Message } from "@/types"
 
 interface MessageBubbleProps { message: Message; question?: Message; onFeedback: (useful: boolean) => Promise<void> }
 
+const timeFormatter = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" })
+
 export function MessageBubble({ message, question, onFeedback }: MessageBubbleProps) {
   const isUser = message.role === "user"
-  return <article className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}><div className={`flex max-w-[min(760px,92%)] gap-3 ${isUser ? "flex-row-reverse" : ""}`}><div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${isUser ? "bg-[#2e6d77] text-[#d9f3ec]" : "bg-[#2a332f] text-[#e8b16b]"}`}>{isUser ? <User size={15} /> : <Bot size={15} />}</div><div className={`${isUser ? "rounded-2xl rounded-tr-sm bg-[#255b67] text-[#eef8f4]" : "rounded-2xl rounded-tl-sm border border-[#2b3637] bg-[#171d1e] text-[#dfe7e1]"} px-4 py-3`}>{isUser ? <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p> : <AssistantMarkdown content={message.content} />}<p className={`mt-2 font-mono text-[9px] ${isUser ? "text-[#b4e0db]" : "text-[#778581]"}`}>{new Date(message.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>{!isUser && message.sources && message.sources.length > 0 && <SourcesPanel sources={message.sources} />}{!isUser && question && <ResponseActions question={question} answer={message} onFeedback={onFeedback} />}</div></div></article>
+  return (
+    <article className={`message-row ${isUser ? "user" : "assistant"}`} aria-label={isUser ? "Pergunta do usuário" : "Resposta do assistente"}>
+      <div className="message-inner">
+        <div className="message-avatar" aria-hidden="true">{isUser ? <User size={16} /> : <Bot size={16} />}</div>
+        <div className="message-body">
+          {!isUser && <div className="assistant-identity"><span className="assistant-label">Assistente</span><span>· resposta fundamentada</span></div>}
+          <div className={`message-content ${isUser ? "user" : "assistant"}`}>
+            {isUser ? <p className="m-0 whitespace-pre-wrap">{message.content}</p> : <AssistantMarkdown content={message.content} />}
+          </div>
+          <p className="message-timestamp">{timeFormatter.format(new Date(message.created_at))}</p>
+          {!isUser && message.sources && message.sources.length > 0 && <SourcesPanel sources={message.sources} />}
+          {!isUser && question && <ResponseActions question={question} answer={message} onFeedback={onFeedback} />}
+        </div>
+      </div>
+    </article>
+  )
 }

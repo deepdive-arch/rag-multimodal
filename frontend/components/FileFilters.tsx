@@ -16,5 +16,25 @@ const typeOptions: Array<{ value: FileType; label: string }> = [
 ]
 
 export function FileFilters({ files, filters, onChange }: FileFiltersProps) {
-  return <div className="space-y-3"><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#6f7d7a]">Filtros</p><div className="grid grid-cols-2 gap-1.5"><button type="button" onClick={() => onChange({})} className={`rounded-lg px-2 py-2 text-left text-xs ${!filters.file_type && !filters.doc_id ? "bg-[#2b3834] text-[#f4ebde]" : "text-[#87938f] hover:bg-[#1d2524]"}`}>Todos</button>{typeOptions.map((option) => <button key={option.value} type="button" onClick={() => onChange({ file_type: option.value })} className={`rounded-lg px-2 py-2 text-left text-xs ${filters.file_type === option.value ? "bg-[#2b3834] text-[#f4ebde]" : "text-[#87938f] hover:bg-[#1d2524]"}`}>{option.label}</button>)}</div><select aria-label="Filtrar por arquivo" value={filters.doc_id ?? ""} onChange={(event) => onChange(event.target.value ? { doc_id: event.target.value } : {})} className="w-full rounded-lg border border-[#2b3637] bg-[#141a1b] px-3 py-2 text-xs text-[#bdc8c4] outline-none focus:border-[#7ccbc4]"><option value="">Arquivo específico</option>{files.filter((file) => file.status === "ready").map((file) => <option key={file.doc_id} value={file.doc_id}>{file.name}</option>)}</select></div>
+  const counts = Object.fromEntries(typeOptions.map(({ value }) => [value, files.filter((file) => file.file_type === value).length])) as Record<FileType, number>
+  const isAllActive = !filters.file_type && !filters.doc_id
+  return (
+    <section className="sidebar-section" aria-labelledby="filter-heading">
+      <div className="section-heading">
+        <p id="filter-heading" className="section-kicker">Filtros</p>
+      </div>
+      <div className="filter-list">
+        <button type="button" className={`filter-chip ${isAllActive ? "active" : ""}`} aria-pressed={isAllActive} onClick={() => onChange({})}>Todos{files.length ? ` ${files.length}` : ""}</button>
+        {typeOptions.map((option) => {
+          const active = filters.file_type === option.value
+          return <button key={option.value} type="button" className={`filter-chip ${active ? "active" : ""}`} aria-pressed={active} disabled={counts[option.value] === 0} onClick={() => onChange({ file_type: option.value })}>{option.label}{counts[option.value] ? ` ${counts[option.value]}` : ""}</button>
+        })}
+      </div>
+      <label className="field-label mt-2" htmlFor="file-filter">Arquivo específico</label>
+      <select id="file-filter" className="file-select mt-2" value={filters.doc_id ?? ""} onChange={(event) => onChange(event.target.value ? { doc_id: event.target.value } : {})}>
+        <option value="">Arquivo específico</option>
+        {files.filter((file) => file.status === "ready").map((file) => <option key={file.doc_id} value={file.doc_id}>{file.name}</option>)}
+      </select>
+    </section>
+  )
 }
