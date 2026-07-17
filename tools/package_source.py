@@ -40,7 +40,7 @@ def is_forbidden_path(path: str | Path) -> bool:
     normalized = normalize_path(path)
     parts = PurePosixPath(normalized).parts
     name = parts[-1] if parts else ""
-    if normalized == ".tmp/.gitkeep":
+    if normalized in {".tmp", ".tmp/.gitkeep"}:
         return False
     return False if is_example_environment(normalized) else name in FORBIDDEN_FILENAMES or name == ".env" or name.startswith(".env.") or any(part in FORBIDDEN_DIRECTORY_NAMES for part in parts) or name.endswith(FORBIDDEN_SUFFIXES)
 
