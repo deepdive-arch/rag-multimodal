@@ -27,7 +27,7 @@ async function request<T>(path: string, options?: RequestInit, signal?: AbortSig
     const response = await fetch(`${BASE}${path}`, { ...options, signal: controller.signal })
     return await parseResponse<T>(response)
   } catch (error) {
-    if (error instanceof TypeError) throw new Error(`NÃ£o foi possÃ­vel conectar ao backend em ${BASE}. Verifique se a API estÃ¡ em execuÃ§Ã£o.`)
+    if (error instanceof TypeError) throw new Error(`Não foi possível conectar ao backend em ${BASE}. Verifique se a API está em execução.`)
     throw error
   } finally {
     window.clearTimeout(timeout)
