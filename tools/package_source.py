@@ -47,7 +47,7 @@ def is_forbidden_path(path: str | Path) -> bool:
 
 def run_git(arguments: list[str], root: Path) -> str:
     """Run a Git command without invoking a shell."""
-    result = subprocess.run(["git", *arguments], cwd=root, check=True, capture_output=True, text=True)
+    result = subprocess.run(["git", *arguments], cwd=root, check=True, capture_output=True, text=True, shell=False)
     return result.stdout.strip()
 
 
