@@ -61,9 +61,9 @@ async def test_invalid_upload_is_removed_before_promotion(tmp_path: Path):
 async def test_upload_above_limit_does_not_remain(tmp_path: Path):
     from core.config import Settings
 
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite", max_upload_size_mb=1)
+    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite", max_upload_size_mb=2, max_media_context_size_mb=1)
     with pytest.raises(FileTooLargeError):
-        await save_upload_stream(UploadStub([b"x" * (1024 * 1024 + 1)]), "large.txt", settings)
+        await save_upload_stream(UploadStub([b"x" * (2 * 1024 * 1024 + 1)]), "large.txt", settings)
     assert list(settings.uploads_dir.glob("*")) == []
 
 

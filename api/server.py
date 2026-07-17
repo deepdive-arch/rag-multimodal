@@ -122,7 +122,8 @@ def _run_query(request: QueryRequest) -> dict:
     sources = retrieve(request.question, request.top_k, file_type=request.filters.file_type, doc_id=request.filters.doc_id, settings=settings)
     history = [GenerationHistory(item.role, item.content) for item in request.history[-settings.max_chat_history_messages :]]
     answer = generate_answer(request.question, sources, history, request.answer_mode, settings)
-    return {"answer": answer.answer, "sources": [_source_response(source) for source in sources], "insufficient_context": answer.insufficient_context}
+    used_sources = [source for source in sources if source.chunk_id in answer.used_chunk_ids]
+    return {"answer": answer.answer, "sources": [_source_response(source) for source in used_sources], "insufficient_context": answer.insufficient_context}
 
 
 def _source_response(source: RetrievedSource) -> SourceResponse:

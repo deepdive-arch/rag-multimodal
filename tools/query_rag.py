@@ -19,7 +19,8 @@ def query(question: str, top_k: int = 5, history: list[dict] | None = None, file
     sources = retrieve(question, top_k, file_type=file_type, doc_id=doc_id, settings=settings)
     messages = [ChatHistoryMessage(item["role"], item["content"]) for item in (history or [])[-settings.max_chat_history_messages :]]
     answer = generate_answer(question, sources, messages, answer_mode, settings)
-    return {"answer": answer.answer, "sources": [source.__dict__ for source in sources], "insufficient_context": answer.insufficient_context}
+    used_sources = [source for source in sources if source.chunk_id in answer.used_chunk_ids]
+    return {"answer": answer.answer, "sources": [source.__dict__ for source in used_sources], "insufficient_context": answer.insufficient_context}
 
 
 def main() -> None:

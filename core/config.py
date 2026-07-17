@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     min_relevance_score: float = 0.35
     max_matches_per_document: int = 3
     max_media_parts_per_query: int = 3
+    max_media_context_size_mb: int = 60
     max_chat_history_messages: int = 6
     max_upload_size_mb: int = 100
     max_pdf_pages: int = 200
@@ -50,6 +51,11 @@ class Settings(BaseSettings):
         """Return the upload limit in bytes."""
         return self.max_upload_size_mb * 1024 * 1024
 
+    @property
+    def max_media_context_size_bytes(self) -> int:
+        """Return the aggregate inline media budget in bytes."""
+        return self.max_media_context_size_mb * 1024 * 1024
+
     @model_validator(mode="after")
     def validate_and_prepare(self) -> "Settings":
         """Validate cross-field constraints and prepare local directories."""
@@ -59,6 +65,10 @@ class Settings(BaseSettings):
             raise ValueError("EMBEDDING_DIMENSION must be positive")
         if self.max_upload_size_mb <= 0 or self.max_pdf_pages <= 0:
             raise ValueError("upload and PDF limits must be positive")
+        if self.max_media_context_size_mb <= 0 or self.max_media_context_size_mb >= self.max_upload_size_mb:
+            raise ValueError("MAX_MEDIA_CONTEXT_SIZE_MB must be positive and below MAX_UPLOAD_SIZE_MB")
+        if self.max_media_parts_per_query <= 0:
+            raise ValueError("MAX_MEDIA_PARTS_PER_QUERY must be positive")
         if self.max_top_k < self.default_top_k:
             raise ValueError("MAX_TOP_K must be greater than or equal to DEFAULT_TOP_K")
         if self.min_relevance_score < -1 or self.min_relevance_score > 1:
