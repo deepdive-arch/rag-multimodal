@@ -1,15 +1,17 @@
 "use client"
 
 import { Menu, X } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ChatArea } from "@/components/ChatArea"
+import type { EmptyStateMode } from "@/components/EmptyState"
 import { Sidebar } from "@/components/Sidebar"
-import { checkHealth, clearIndex, deleteFile, getStats, ingestFile, listFiles, queryRag, sendFeedback } from "@/lib/api"
+import { checkHealth, clearIndex, deleteFile, getStats, ingestFile, isRequestCancelledError, listFiles, queryRag, sendFeedback } from "@/lib/api"
 import { clearMessages, loadMessages, loadPreferences, saveMessages, savePreferences } from "@/lib/storage"
-import type { AnswerMode, HealthStatus, IngestedFile, Message, QueryFilters, Stats } from "@/types"
+import type { AnswerMode, HealthStatus, IngestedFile, Message, QueryFilters, QuerySubmissionResult, Stats } from "@/types"
 
 function messageId() { return `${Date.now()}-${Math.random().toString(36).slice(2)}` }
 function errorMessage(error: unknown, fallback: string) { return error instanceof Error ? error.message : fallback }
+const FOCUSABLE_SELECTOR = "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])"
 
 export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -23,15 +25,41 @@ export default function Page() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadSummary, setUploadSummary] = useState({ success: 0, errors: [] as string[], catalogError: "" })
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
+  const [catalogError, setCatalogError] = useState("")
+  const [isRefreshingWorkspace, setIsRefreshingWorkspace] = useState(true)
+  const [actionError, setActionError] = useState("")
   const [isHydrated, setIsHydrated] = useState(false)
   const controllerRef = useRef<AbortController | null>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const sidebarRef = useRef<HTMLElement>(null)
 
+  const refreshWorkspace = useCallback(async () => {
+    setIsRefreshingWorkspace(true)
+    try {
+      const [healthResult, filesResult, statsResult] = await Promise.allSettled([checkHealth(), listFiles(), getStats()])
+      if (healthResult.status === "fulfilled") setHealthStatus(healthResult.value)
+      else setHealthStatus(null)
+      if (filesResult.status === "fulfilled") setFiles(filesResult.value)
+      if (statsResult.status === "fulfilled") setStats(statsResult.value)
+      const catalogFailure = [filesResult, statsResult].find((result): result is PromiseRejectedResult => result.status === "rejected")
+      setCatalogError(catalogFailure ? errorMessage(catalogFailure.reason, "A biblioteca não pôde ser carregada.") : "")
+      return !catalogFailure
+    } finally {
+      setIsRefreshingWorkspace(false)
+    }
+  }, [])
   useEffect(() => {
     const preferences = loadPreferences()
     window.setTimeout(() => { setMessages(loadMessages()); setTopK(preferences.topK); setAnswerMode(preferences.answerMode); setFilters(preferences.filters); setIsHydrated(true) }, 0)
-    void Promise.all([checkHealth(), listFiles(), getStats()]).then(([health, loadedFiles, loadedStats]) => { setHealthStatus(health); setFiles(loadedFiles); setStats(loadedStats) }).catch(() => setHealthStatus(null))
+    window.setTimeout(() => { void refreshWorkspace() }, 0)
+  }, [refreshWorkspace])
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)")
+    const updateViewport = () => { const isMobile = mediaQuery.matches; setIsMobileViewport(isMobile); if (!isMobile) setIsSidebarOpen(false) }
+    updateViewport()
+    mediaQuery.addEventListener("change", updateViewport)
+    return () => mediaQuery.removeEventListener("change", updateViewport)
   }, [])
   useEffect(() => { if (isHydrated) saveMessages(messages) }, [messages, isHydrated])
   useEffect(() => { if (isHydrated) savePreferences({ topK, answerMode, filters }) }, [topK, answerMode, filters, isHydrated])
@@ -40,28 +68,76 @@ export default function Page() {
     const previousOverflow = document.body.style.overflow
     const menuButton = menuButtonRef.current
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setIsSidebarOpen(false) }
+    const keepFocusInside = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return
+      const focusable = Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
     document.body.style.overflow = "hidden"
     document.addEventListener("keydown", closeOnEscape)
+    document.addEventListener("keydown", keepFocusInside)
     sidebarRef.current?.focus()
-    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", closeOnEscape); menuButton?.focus() }
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", closeOnEscape); document.removeEventListener("keydown", keepFocusInside); menuButton?.focus() }
   }, [isSidebarOpen])
 
-  const refreshCatalog = async () => { const [loadedFiles, loadedStats] = await Promise.all([listFiles(), getStats()]); setFiles(loadedFiles); setStats(loadedStats) }
-  const handleFiles = async (incoming: File[]) => { setIsUploading(true); setUploadSummary({ success: 0, errors: [], catalogError: "" }); let success = 0; const errors: string[] = []; for (const file of incoming) { try { await ingestFile(file); success += 1; setUploadSummary({ success, errors: [...errors], catalogError: "" }) } catch (error) { errors.push(`${file.name}: ${errorMessage(error, "falha na ingestão")}`); setUploadSummary({ success, errors: [...errors], catalogError: "" }); continue } try { await refreshCatalog(); setUploadSummary({ success, errors: [...errors], catalogError: "" }) } catch (error) { setUploadSummary({ success, errors: [...errors], catalogError: `Upload concluído, mas a lista não pôde ser atualizada: ${errorMessage(error, "erro desconhecido")}` }) } } setIsUploading(false) }
-  const handleQuery = async (question: string) => { const userMessage: Message = { id: messageId(), role: "user", content: question, created_at: new Date().toISOString() }; setMessages((current) => [...current, userMessage]); setIsQuerying(true); const controller = new AbortController(); controllerRef.current = controller; try { const result = await queryRag({ question, top_k: topK, history: messages.slice(-6).map(({ role, content }) => ({ role, content })), filters, answer_mode: answerMode }, controller.signal); setMessages((current) => [...current, { id: messageId(), role: "assistant", content: result.answer, created_at: new Date().toISOString(), sources: result.sources, insufficient_context: result.insufficient_context, feedback: null }]) } finally { setIsQuerying(false); controllerRef.current = null } }
-  const handleFeedback = async (messageIdValue: string, useful: boolean) => { const answer = messages.find((message) => message.id === messageIdValue); if (!answer) return; const index = messages.findIndex((message) => message.id === messageIdValue); const question = messages.slice(0, index).toReversed().find((message) => message.role === "user"); if (!question) return; await sendFeedback({ question: question.content, answer: answer.content, useful, source_ids: (answer.sources ?? []).map((source) => source.chunk_id) }); setMessages((current) => current.map((message) => message.id === messageIdValue ? { ...message, feedback: useful ? "useful" : "not_useful" } : message)) }
-  const handleDelete = async (file: IngestedFile) => { if (!window.confirm(`Excluir ${file.name} da base?`)) return; await deleteFile(file.doc_id); setFilters((current) => current.doc_id === file.doc_id ? {} : current); await refreshCatalog() }
-  const handleClearIndex = async () => { if (window.prompt("Digite DELETE_ALL para limpar a base inteira.") !== "DELETE_ALL") return; await clearIndex("DELETE_ALL"); setMessages([]); clearMessages(); setFilters({}); await refreshCatalog() }
+  const handleFiles = async (incoming: File[]) => {
+    setIsUploading(true)
+    setActionError("")
+    setUploadSummary({ success: 0, errors: [], catalogError: "" })
+    let success = 0
+    const errors: string[] = []
+    let catalogUpdated = true
+    for (const file of incoming) {
+      try { await ingestFile(file); success += 1 } catch (error) { errors.push(`${file.name}: ${errorMessage(error, "falha na ingestão")}`) }
+      setUploadSummary({ success, errors: [...errors], catalogError: "" })
+    }
+    try { catalogUpdated = await refreshWorkspace(); if (!catalogUpdated) setUploadSummary({ success, errors: [...errors], catalogError: "Upload concluído, mas a lista não pôde ser atualizada." }) } catch (error) { catalogUpdated = false; setUploadSummary({ success, errors: [...errors], catalogError: `Upload concluído, mas a lista não pôde ser atualizada: ${errorMessage(error, "erro desconhecido")}` }) }
+    setIsUploading(false)
+    return errors.length === 0 && catalogUpdated
+  }
+  const handleQuery = async (question: string): Promise<QuerySubmissionResult> => {
+    if (!canQuery) return "cancelled"
+    const userMessage: Message = { id: messageId(), role: "user", content: question, created_at: new Date().toISOString() }
+    setMessages((current) => [...current, userMessage])
+    setActionError("")
+    setIsQuerying(true)
+    const controller = new AbortController()
+    controllerRef.current = controller
+    try {
+      const result = await queryRag({ question, top_k: topK, history: messages.slice(-6).map(({ role, content }) => ({ role, content })), filters, answer_mode: answerMode }, controller.signal)
+      setMessages((current) => [...current, { id: messageId(), role: "assistant", content: result.answer, created_at: new Date().toISOString(), sources: result.sources, insufficient_context: result.insufficient_context, feedback: null }])
+      return "completed"
+    } catch (error) {
+      if (!isRequestCancelledError(error)) throw error
+      setMessages((current) => current.filter((message) => message.id !== userMessage.id))
+      return "cancelled"
+    } finally {
+      setIsQuerying(false)
+      controllerRef.current = null
+    }
+  }
+  const handleFeedback = async (messageIdValue: string, useful: boolean) => { const answer = messages.find((message) => message.id === messageIdValue); if (!answer) return; const index = messages.findIndex((message) => message.id === messageIdValue); const question = messages.slice(0, index).toReversed().find((message) => message.role === "user"); if (!question) return; setActionError(""); try { await sendFeedback({ question: question.content, answer: answer.content, useful, source_ids: (answer.sources ?? []).map((source) => source.chunk_id) }) } catch (error) { setActionError(errorMessage(error, "Não foi possível registrar o feedback.")); return } setMessages((current) => current.map((message) => message.id === messageIdValue ? { ...message, feedback: useful ? "useful" : "not_useful" } : message)) }
+  const handleDelete = async (file: IngestedFile) => { if (!window.confirm(`Excluir ${file.name} da base?`)) return; setActionError(""); try { await deleteFile(file.doc_id) } catch (error) { setActionError(errorMessage(error, "Não foi possível excluir o arquivo.")); return } setFilters((current) => current.doc_id === file.doc_id ? {} : current); try { await refreshWorkspace() } catch { return } }
+  const handleClearIndex = async () => { if (window.prompt("Digite DELETE_ALL para limpar a base inteira.") !== "DELETE_ALL") return; setActionError(""); try { await clearIndex("DELETE_ALL") } catch (error) { setActionError(errorMessage(error, "Não foi possível limpar a base.")); return } setMessages([]); clearMessages(); setFilters({}); try { await refreshWorkspace() } catch { return } }
   const activeFilterLabel = filters.doc_id ? files.find((file) => file.doc_id === filters.doc_id)?.name ?? "Arquivo específico" : filters.file_type ?? undefined
+  const hasReadyFiles = files.some((file) => file.status === "ready")
+  const serviceUnavailable = !isRefreshingWorkspace && (!healthStatus || healthStatus.status !== "ok")
+  const canQuery = hasReadyFiles && !catalogError && healthStatus?.status === "ok"
+  const emptyStateMode: EmptyStateMode = isRefreshingWorkspace && files.length === 0 ? "loading" : catalogError || serviceUnavailable ? "error" : hasReadyFiles ? "ready" : files.length ? "processing" : "no-files"
   return (
-    <div className="flex h-dvh overflow-hidden">
-      {isSidebarOpen && <button type="button" className="mobile-scrim md:hidden" aria-label="Fechar biblioteca" onClick={() => setIsSidebarOpen(false)} />}
-      <div className={`fixed inset-y-0 left-0 z-50 w-[min(90vw,348px)] transition-transform duration-200 md:static md:z-auto md:w-[348px] md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <Sidebar sidebarRef={sidebarRef} files={files} filters={filters} topK={topK} answerMode={answerMode} isUploading={isUploading} uploadSummary={uploadSummary} onFiles={async (incoming) => { await handleFiles(incoming); setIsSidebarOpen(false) }} onFilters={setFilters} onTopK={setTopK} onAnswerMode={setAnswerMode} onDelete={(file) => void handleDelete(file)} onClearChat={() => { setMessages([]); clearMessages() }} onClearIndex={() => void handleClearIndex()} />
+    <div className="app-shell">
+      <a className="skip-link" href="#conversation-content" tabIndex={isSidebarOpen ? -1 : 0} aria-hidden={isSidebarOpen}>Pular para a conversa</a>
+      {isSidebarOpen && isMobileViewport && <button type="button" className="mobile-scrim" aria-label="Fechar biblioteca" onClick={() => setIsSidebarOpen(false)} />}
+      <div className={`sidebar-container ${isSidebarOpen && isMobileViewport ? "is-open" : ""}`} aria-hidden={isMobileViewport && !isSidebarOpen ? "true" : undefined} inert={isMobileViewport && !isSidebarOpen ? true : undefined}>
+        <Sidebar sidebarRef={sidebarRef} isDrawerOpen={isMobileViewport && isSidebarOpen} files={files} filters={filters} topK={topK} answerMode={answerMode} isUploading={isUploading} uploadSummary={uploadSummary} onFiles={async (incoming) => { const succeeded = await handleFiles(incoming); if (succeeded) setIsSidebarOpen(false); return succeeded }} onFilters={setFilters} onTopK={setTopK} onAnswerMode={setAnswerMode} onDelete={(file) => void handleDelete(file)} onClearChat={() => { if (window.confirm("Limpar a conversa atual?")) { setMessages([]); clearMessages() } }} onClearIndex={() => void handleClearIndex()} />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col" aria-hidden={isSidebarOpen ? "true" : undefined}>
-        <button ref={menuButtonRef} type="button" className="mobile-menu-button md:hidden" aria-label={isSidebarOpen ? "Fechar biblioteca" : "Abrir biblioteca"} aria-controls="rag-sidebar" aria-expanded={isSidebarOpen} onClick={() => setIsSidebarOpen((value) => !value)}>{isSidebarOpen ? <X aria-hidden="true" size={18} /> : <Menu aria-hidden="true" size={18} />}</button>
-        <ChatArea messages={messages} healthStatus={healthStatus} stats={stats} isQuerying={isQuerying} activeFilterLabel={activeFilterLabel} topK={topK} answerMode={answerMode} onSubmit={handleQuery} onCancel={() => controllerRef.current?.abort()} onFeedback={handleFeedback} />
+      <div className="main-panel" aria-hidden={isMobileViewport && isSidebarOpen ? "true" : undefined}>
+        <button ref={menuButtonRef} type="button" className="mobile-menu-button lg:hidden" aria-label={isSidebarOpen ? "Fechar biblioteca" : "Abrir biblioteca"} aria-controls="rag-sidebar" aria-expanded={isSidebarOpen} onClick={() => setIsSidebarOpen((value) => !value)}>{isSidebarOpen ? <X aria-hidden="true" size={18} /> : <Menu aria-hidden="true" size={18} />}</button>
+        <ChatArea messages={messages} healthStatus={healthStatus} stats={stats} canQuery={canQuery} emptyStateMode={emptyStateMode} isQuerying={isQuerying} activeFilterLabel={activeFilterLabel} topK={topK} answerMode={answerMode} catalogError={catalogError} actionError={actionError} isRefreshingWorkspace={isRefreshingWorkspace} onRetryWorkspace={() => void refreshWorkspace()} onOpenLibrary={() => setIsSidebarOpen(true)} onSubmit={handleQuery} onCancel={() => controllerRef.current?.abort()} onFeedback={handleFeedback} />
       </div>
     </div>
   )

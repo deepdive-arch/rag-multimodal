@@ -14,7 +14,7 @@ from db.catalog import Catalog, utc_now
 from services.embeddings import embed_media, embed_text, prepare_document_text
 from services.media import MediaItem, extract_items
 from services.pinecone_service import delete_all_vectors, delete_vectors, upsert_vectors
-from services.storage import file_type_for, mime_for, remove_storage, sha256_for_path, stage_existing_file, storage_key_for_path
+from services.storage import extension_for, file_type_for, mime_for, remove_storage, sha256_for_path, stage_existing_file, storage_key_for_path, validate_signature
 
 
 logger = logging.getLogger("rag_multimodal.ingestion")
@@ -65,8 +65,8 @@ def ingest_file(path: str | Path, original_name: str | None = None, *, force: bo
         _run(catalog.add_chunks(rows))
         _run(catalog.update_file_status(doc_id, "ready", chunks_count=len(rows), warnings=warnings))
         return IngestionResult(doc_id, name, file_type, len(rows), False, warnings)
-    except AppError:
-        _rollback(catalog, doc_id, created_vectors, settings, "Falha esperada durante a ingestão.")
+    except AppError as error:
+        _rollback(catalog, doc_id, created_vectors, settings, error)
         raise
     except Exception as error:
         _rollback(catalog, doc_id, created_vectors, settings, error)
@@ -108,11 +108,17 @@ def clear_index(settings: Settings | None = None) -> None:
 def _permanent_path(path: Path, settings: Settings) -> Path:
     """Ensure an input path is copied into permanent storage."""
     root = settings.uploads_dir.resolve()
+    candidate = path.resolve()
     try:
-        path.resolve().relative_to(root)
-        return path.resolve()
+        candidate.relative_to(root)
     except ValueError:
         return stage_existing_file(path, settings).path
+    try:
+        validate_signature(candidate, extension_for(candidate))
+    except AppError:
+        candidate.unlink(missing_ok=True)
+        raise
+    return candidate
 
 
 def _build_vectors(items: list[MediaItem], record: dict[str, Any], doc_id: str, settings: Settings) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
@@ -132,15 +138,16 @@ def _build_vectors(items: list[MediaItem], record: dict[str, Any], doc_id: str, 
 
 
 def _rollback(catalog: Catalog, doc_id: str, vector_ids: list[str], settings: Settings, error: Exception | str) -> None:
-    """Best-effort cleanup while keeping the original upload for diagnosis."""
+    """Best-effort cleanup while retaining only structurally valid uploads."""
     try:
         delete_vectors(vector_ids, settings)
     except Exception:
         logger.warning("ingestion_rollback_vectors_failed", extra={"doc_id": doc_id})
+    shutil.rmtree(settings.derived_dir / doc_id, ignore_errors=True)
     try:
         _run(catalog.delete_chunks(doc_id))
-        message = error if isinstance(error, str) else "Falha inesperada durante a ingestão."
-        _run(catalog.update_file_status(doc_id, "failed", warnings=[], error_message=str(message)[:500]))
+        message = str(error) if isinstance(error, AppError) else "Falha inesperada durante a ingestão."
+        _run(catalog.update_file_status(doc_id, "failed", warnings=[], error_message=message[:500]))
     except Exception:
         logger.warning("ingestion_rollback_catalog_failed", extra={"doc_id": doc_id})
 

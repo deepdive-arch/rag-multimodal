@@ -3,7 +3,7 @@
 import asyncio
 import json
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,9 +11,9 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.dependencies import require_admin
-from api.schemas import ClearIndexRequest, FeedbackRequest, IngestResponse, QueryRequest, QueryResponse, SourceResponse
+from api.schemas import ClearIndexRequest, DatabaseHealthState, FeedbackRequest, GoogleHealthState, HealthState, HealthStatus, IngestResponse, PineconeHealthState, QueryRequest, QueryResponse, SourceResponse
 from core.config import get_settings
-from core.exceptions import AppError, ConfigurationError, FileNotFoundInCatalogError, FileTooLargeError, InvalidMediaError, MediaDurationExceededError, UnsupportedFileError
+from core.exceptions import AppError, ConfigurationError, ExternalServiceError, FileNotFoundInCatalogError, FileTooLargeError, InvalidMediaError, MediaDurationExceededError, UnsupportedFileError
 from core.logging import configure_logging
 from db.catalog import Catalog
 from services.generation import ChatHistoryMessage as GenerationHistory, generate_answer
@@ -42,7 +42,7 @@ app.mount("/uploads", StaticFiles(directory=get_settings().uploads_dir), name="u
 @app.exception_handler(AppError)
 async def app_error_handler(_: Request, error: AppError) -> JSONResponse:
     """Map expected errors to safe status codes."""
-    mapping = {FileTooLargeError: 413, UnsupportedFileError: 415, InvalidMediaError: 422, MediaDurationExceededError: 422, FileNotFoundInCatalogError: 404, ConfigurationError: 503}
+    mapping = {FileTooLargeError: 413, UnsupportedFileError: 415, InvalidMediaError: 422, MediaDurationExceededError: 422, FileNotFoundInCatalogError: 404, ConfigurationError: 503, ExternalServiceError: 503}
     status = next((code for error_type, code in mapping.items() if isinstance(error, error_type)), 400)
     return JSONResponse(status_code=status, content={"detail": str(error)})
 
@@ -54,12 +54,33 @@ async def unexpected_error_handler(_: Request, error: Exception) -> JSONResponse
     return JSONResponse(status_code=500, content={"detail": "Erro interno ao processar a solicitação."})
 
 
-@app.get("/api/health")
-async def health() -> dict:
+@app.get("/api/health", response_model=HealthStatus)
+async def health() -> HealthStatus:
     """Return safe service readiness information."""
     settings = get_settings()
-    database = await Catalog(settings.database_path).is_ready()
-    return {"status": "ok" if database else "degraded", "services": {"google_configured": bool(settings.google_api_key), "pinecone_configured": bool(settings.pinecone_api_key), "database": "ok" if database else "unavailable", "pinecone_index": index_health(settings)}, "models": {"embedding": settings.gemini_embedding_model, "generation": settings.gemini_generation_model}}
+    database = await _database_health(settings)
+    google: GoogleHealthState = "configured" if settings.google_api_key else "missing_key"
+    pinecone = await _pinecone_health(settings)
+    return HealthStatus(status=_health_status(database, google, pinecone), services={"database": database, "google": google, "pinecone": pinecone}, models={"embedding": settings.gemini_embedding_model, "generation": settings.gemini_generation_model})
+
+
+async def _database_health(settings) -> DatabaseHealthState:
+    """Return local database readiness without failing the health endpoint."""
+    with suppress(Exception):
+        return "ok" if await Catalog(settings.database_path).is_ready() else "unavailable"
+    return "unavailable"
+
+
+async def _pinecone_health(settings) -> PineconeHealthState:
+    """Run the synchronous Pinecone probe outside the event loop."""
+    with suppress(Exception):
+        return await asyncio.to_thread(index_health, settings)
+    return "unavailable"
+
+
+def _health_status(database: DatabaseHealthState, google: GoogleHealthState, pinecone: PineconeHealthState) -> HealthState:
+    """Derive global readiness from all essential dependencies."""
+    return "offline" if database != "ok" else "ok" if google == "configured" and pinecone == "ready" else "degraded"
 
 
 @app.get("/api/stats")

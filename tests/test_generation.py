@@ -5,6 +5,7 @@ from google.genai import types
 
 from api.schemas import QueryRequest
 from core.config import Settings
+from core.exceptions import ExternalServiceError
 from services.generation import GeneratedAnswer, _build_contents, generate_answer
 from services.retrieval import RetrievedSource
 
@@ -102,6 +103,44 @@ def test_text_source_is_included_normally(tmp_path: Path):
     settings = make_settings(tmp_path)
     _, used = _build_contents("pergunta", [make_source("text", content_modality="text", chunk_text="conteúdo", file_type="text")], [], "detailed", settings)
     assert used == ["text"]
+
+
+def test_generation_reserves_output_tokens_and_limits_gemini_thinking(tmp_path: Path, monkeypatch):
+    settings = make_settings(tmp_path)
+    settings.google_api_key = "test-key"
+    captured = {}
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            captured.update(kwargs)
+            return types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(parts=[types.Part(text="resposta completa")]), finish_reason="STOP")])
+
+    class FakeClient:
+        models = FakeModels()
+
+    monkeypatch.setattr("services.generation.get_google_client", lambda: FakeClient())
+    answer = generate_answer("pergunta", [make_source("text", content_modality="text", chunk_text="conteúdo", file_type="text")], [], "detailed", settings)
+
+    assert answer.answer == "resposta completa"
+    assert captured["config"].max_output_tokens == 4096
+    assert captured["config"].thinking_config.thinking_level.value == "LOW"
+    assert captured["config"].thinking_config.include_thoughts is False
+
+
+def test_generation_does_not_return_token_limited_partial_answer(tmp_path: Path, monkeypatch):
+    settings = make_settings(tmp_path)
+    settings.google_api_key = "test-key"
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            return types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(parts=[types.Part(text="resposta pela metade")]), finish_reason="MAX_TOKENS")])
+
+    class FakeClient:
+        models = FakeModels()
+
+    monkeypatch.setattr("services.generation.get_google_client", lambda: FakeClient())
+    with pytest.raises(ExternalServiceError, match="limite de saída"):
+        generate_answer("pergunta", [make_source("text", content_modality="text", chunk_text="conteúdo", file_type="text")], [], "detailed", settings)
 
 
 def test_api_returns_only_sources_used_by_generation(monkeypatch, tmp_path: Path):

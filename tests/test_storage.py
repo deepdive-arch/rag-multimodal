@@ -39,6 +39,17 @@ def test_stage_hash_and_relative_key(tmp_path: Path):
     assert storage_key_for_path(stored.path, settings).startswith("uploads/")
 
 
+def test_stage_invalid_file_leaves_no_permanent_artifact(tmp_path: Path):
+    from core.config import Settings
+
+    source = tmp_path / "bad.txt"
+    source.write_bytes(b"\xff\xfe")
+    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    with pytest.raises(UnsupportedFileError):
+        stage_existing_file(source, settings)
+    assert list(settings.uploads_dir.iterdir()) == []
+
+
 def test_binary_named_as_text_is_rejected(tmp_path: Path):
     path = tmp_path / "bad.txt"
     path.write_bytes(b"\xff\xfe\x00")
@@ -92,6 +103,17 @@ def test_invalid_docx_packages_are_rejected(tmp_path: Path, payload: bytes):
         validate_signature(path, ".docx")
 
 
+def test_docx_with_corrupt_xml_is_rejected(tmp_path: Path):
+    from zipfile import ZipFile
+
+    path = tmp_path / "corrupt.docx"
+    with ZipFile(path, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types>")
+        archive.writestr("word/document.xml", "<document />")
+    with pytest.raises(UnsupportedFileError):
+        validate_signature(path, ".docx")
+
+
 def test_existing_valid_destination_is_reused(tmp_path: Path):
     from core.config import Settings
 
@@ -115,4 +137,19 @@ def test_corrupt_existing_destination_is_not_reused(tmp_path: Path):
     with pytest.raises(InvalidMediaError):
         stage_existing_file(source, settings)
     assert stored.path.read_text(encoding="utf-8") == "world"
+    assert list(settings.uploads_dir.glob(".*")) == []
+
+
+def test_existing_directory_is_not_overwritten(tmp_path: Path):
+    from core.config import Settings
+
+    source = tmp_path / "hello.txt"
+    source.write_text("hello", encoding="utf-8")
+    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    digest = sha256_for_path(source)
+    destination = settings.uploads_dir / f"{digest}_hello.txt"
+    destination.mkdir()
+    with pytest.raises(InvalidMediaError, match="não pôde ser validado"):
+        stage_existing_file(source, settings)
+    assert destination.is_dir()
     assert list(settings.uploads_dir.glob(".*")) == []

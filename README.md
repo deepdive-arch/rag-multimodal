@@ -2,7 +2,13 @@
 
 MVP local de RAG multimodal para consultar documentos, imagens, PDFs, áudios e vídeos com respostas fundamentadas e fontes verificáveis.
 
+O projeto recebe arquivos, extrai e normaliza seu conteúdo, gera embeddings, recupera os trechos mais relevantes e usa o Gemini para produzir respostas apoiadas nas evidências encontradas. O catálogo, os uploads e os arquivos derivados ficam localmente; o Gemini e o Pinecone são serviços externos usados para processamento e busca vetorial.
+
+> Status: MVP funcional para uso local. OCR externo, transcrição de áudio/vídeo, autenticação de usuários e deploy em produção ainda não fazem parte do escopo atual.
+
 ## Arquitetura
+
+Consulte o [diagrama de arquitetura de runtime](docs/runtime-architecture.html) para uma visão interativa da comunicação entre frontend, backend, armazenamento local, Gemini e Pinecone.
 
 ```text
 Next.js 16 / React              FastAPI
@@ -14,7 +20,17 @@ localStorage                    SQLite + storage local
 
 O backend segue a separação WAT: `workflows/` documenta runbooks, `tools/` contém wrappers CLI pequenos e a lógica vive em `core/`, `db/` e `services/`.
 
-## Stack e pré-requisitos
+## Tecnologias e pré-requisitos
+
+- Python + FastAPI para a API e os processos de ingestão/consulta;
+- Next.js 16, React 19 e TypeScript para a interface web;
+- SQLite para o catálogo local e armazenamento em `.tmp/` para uploads e derivados;
+- Google Gemini para embeddings e geração de respostas;
+- Pinecone para busca vetorial;
+- PyMuPDF, `python-docx`, Pillow, OpenCV e Mutagen para leitura e validação de mídia;
+- pytest e Ruff no backend; ESLint, TypeScript e Next.js no frontend.
+
+Para executar o projeto, também é necessário:
 
 - Python 3.12 ou superior (testado localmente com Python 3.13);
 - Node.js 20.9 ou superior (testado localmente com Node 24);
@@ -49,10 +65,20 @@ Preencha `GOOGLE_API_KEY` e `PINECONE_API_KEY` no `.env`. Não versione `.env`.
 
 ### Frontend
 
+PowerShell:
+
+```powershell
+cd frontend
+npm install
+Copy-Item .env.local.example .env.local
+```
+
+Linux/macOS:
+
 ```bash
 cd frontend
 npm install
-copy .env.local.example .env.local   # PowerShell: Copy-Item .env.local.example .env.local
+cp .env.local.example .env.local
 ```
 
 O frontend usa `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` por padrão.
@@ -95,6 +121,8 @@ npm run dev
 
 Acesse `http://localhost:3000`.
 
+Com os dois processos em execução, use a interface para enviar um arquivo, aguarde o status `ready` e faça uma pergunta no chat. A resposta exibe as fontes utilizadas. Para verificar o backend diretamente, consulte `http://127.0.0.1:8000/api/health`.
+
 ## Formatos e limites
 
 Suportados: `.txt`, `.md`, `.docx`, `.pdf`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.mp4`, `.mov`, `.mp3` e `.wav`.
@@ -128,6 +156,8 @@ npm run lint
 npm run typecheck
 npm run build
 ```
+
+O comando `npm run build` valida a compilação de produção, mas não inicia o servidor; para iniciar uma build já compilada, use `npm run start` dentro de `frontend`.
 
 `requirements.lock.txt` contém as versões Python exatas geradas após a instalação. `frontend/package-lock.json` é mantido pelo npm.
 
@@ -175,3 +205,8 @@ Excluir um arquivo remove vetores, catálogo, original e derivados somente depoi
 - Índice incompatível: revise dimensão, métrica, cloud, região e namespace; a aplicação não recria o índice automaticamente.
 - Arquivo rejeitado: confirme extensão, MIME real, assinatura, tamanho e duração.
 - Para reprocessar arquivo com status `failed`, use `--force` no CLI.
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT. Consulte o arquivo
+[LICENSE](LICENSE) para obter mais informações.

@@ -11,5 +11,7 @@ async def test_catalog_status_chunks_and_cascade(tmp_path):
     await catalog.add_chunks([{"chunk_id": "chunk", "doc_id": "doc", "vector_id": "vector", "chunk_index": 0, "page_number": 0, "content_modality": "text", "media_key": ""}])
     await catalog.update_file_status("doc", "ready", chunks_count=1)
     assert await catalog.get_vector_ids("doc") == ["vector"]
+    files = await catalog.list_files()
+    assert files[0]["doc_id"] == "doc"
     await catalog.delete_file("doc")
     assert await catalog.get_file("doc") is None

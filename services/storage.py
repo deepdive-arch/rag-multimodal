@@ -5,6 +5,7 @@ import logging
 import re
 import shutil
 import zipfile
+from xml.etree import ElementTree
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
@@ -126,6 +127,7 @@ def safe_storage_path(storage_key: str, settings: Settings | None = None) -> Pat
 
 def validate_signature(path: Path, extension: str) -> None:
     """Validate the real file signature without loading the whole file."""
+    extension = extension.lower()
     with path.open("rb") as stream:
         header = stream.read(4096)
     kind = filetype.guess(header)
@@ -138,20 +140,29 @@ def validate_signature(path: Path, extension: str) -> None:
     if extension == ".docx":
         _validate_docx_package(path)
         return
-    if extension in IMAGE_EXTENSIONS and not known_mime.startswith("image/"):
+    if extension in IMAGE_EXTENSIONS and known_mime != MIME_MAP[extension]:
         raise UnsupportedFileError("Assinatura de imagem inválida")
-    if extension in AUDIO_EXTENSIONS and known_mime and not known_mime.startswith("audio/") and not header.startswith((b"ID3", b"RIFF")):
+    if extension in AUDIO_EXTENSIONS and not _is_audio_signature(header, known_mime, extension):
         raise UnsupportedFileError("Assinatura de áudio inválida")
-    if extension in VIDEO_EXTENSIONS and not (b"ftyp" in header[:64] or known_mime.startswith("video/")):
+    if extension in VIDEO_EXTENSIONS and not (b"ftyp" in header[:64] or known_mime == MIME_MAP[extension]):
         raise UnsupportedFileError("Assinatura de vídeo inválida")
 
 
 def _validate_text_header(header: bytes) -> None:
     """Reject a text upload whose sampled bytes are not UTF-8."""
     try:
-        header.decode("utf-8")
+        text = header.decode("utf-8")
     except UnicodeDecodeError as error:
         raise UnsupportedFileError("Arquivo de texto não é UTF-8 válido") from error
+    if any(ord(character) < 32 and character not in "\t\n\f\r" for character in text):
+        raise UnsupportedFileError("Assinatura de texto inválida")
+
+
+def _is_audio_signature(header: bytes, known_mime: str, extension: str) -> bool:
+    """Accept recognized audio signatures and the standard minimal headers."""
+    if extension == ".mp3":
+        return known_mime == "audio/mpeg" or header.startswith(b"ID3")
+    return known_mime in {"audio/wav", "audio/x-wav"} or header[:12].startswith(b"RIFF") and header[8:12] == b"WAVE"
 
 
 def _validate_docx_package(path: Path) -> None:
@@ -159,9 +170,13 @@ def _validate_docx_package(path: Path) -> None:
     try:
         with zipfile.ZipFile(path) as archive:
             required = {"[Content_Types].xml", "word/document.xml"}
-            if not required.issubset(archive.namelist()):
+            infos = {name: archive.getinfo(name) for name in required}
+            if any(info.is_dir() for info in infos.values()):
                 raise UnsupportedFileError("Assinatura DOCX inválida")
-    except zipfile.BadZipFile as error:
+            for name in required:
+                with archive.open(infos[name]) as member:
+                    ElementTree.parse(member)
+    except (ElementTree.ParseError, KeyError, OSError, RuntimeError, zipfile.BadZipFile) as error:
         raise UnsupportedFileError("Assinatura DOCX inválida") from error
 
 
@@ -186,8 +201,10 @@ def _copy_path(source: Path, temporary: Path, limit: int) -> tuple[str, int]:
 
 def _reuse_existing(destination: Path, temporary: Path, sha256: str, size: int, extension: str) -> StoredUpload | None:
     """Reuse a destination only after checking its integrity and signature."""
-    if not destination.exists():
+    if not (destination.exists() or destination.is_symlink()):
         return None
+    if destination.is_symlink():
+        _reject_existing_destination("symlink")
     try:
         valid_integrity = destination.is_file() and destination.stat().st_size == size and sha256_for_path(destination) == sha256
     except OSError as error:
@@ -196,7 +213,7 @@ def _reuse_existing(destination: Path, temporary: Path, sha256: str, size: int, 
         _reject_existing_destination("integrity_mismatch")
     try:
         validate_signature(destination, extension)
-    except UnsupportedFileError as error:
+    except Exception as error:
         _reject_existing_destination("signature_invalid", error)
     temporary.unlink(missing_ok=True)
     return StoredUpload(destination, sha256, destination.name, size)

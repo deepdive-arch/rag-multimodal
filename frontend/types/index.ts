@@ -1,5 +1,8 @@
 export type FileType = "pdf" | "image" | "video" | "audio" | "text" | "docx"
 export type AnswerMode = "quick" | "detailed" | "evidence"
+export type HealthState = "ok" | "degraded" | "offline"
+export type GoogleHealthState = "configured" | "missing_key"
+export type PineconeHealthState = "ready" | "missing_key" | "index_missing" | "unavailable" | "invalid_configuration"
 
 export interface Source {
   doc_id: string
@@ -41,12 +44,11 @@ export interface QueryFilters {
 }
 
 export interface HealthStatus {
-  status: string
+  status: HealthState
   services: {
-    google_configured: boolean
-    pinecone_configured: boolean
-    database: string
-    pinecone_index: string
+    database: "ok" | "unavailable"
+    google: GoogleHealthState
+    pinecone: PineconeHealthState
   }
   models: { embedding: string; generation: string }
 }
@@ -70,3 +72,5 @@ export interface QueryResult {
   sources: Source[]
   insufficient_context: boolean
 }
+
+export type QuerySubmissionResult = "completed" | "cancelled"

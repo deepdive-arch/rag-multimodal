@@ -65,7 +65,7 @@ class Catalog:
 
     async def list_files(self) -> list[dict[str, Any]]:
         """List files without exposing internal paths."""
-        return await self._fetch_all("SELECT doc_id, original_name, file_type, mime_type, chunks_count, size_bytes, status, warnings_json, created_at FROM ingested_files ORDER BY created_at DESC")
+        return await self._fetch_all("SELECT doc_id, original_name, file_type, mime_type, chunks_count, size_bytes, status, warnings_json, created_at FROM ingested_files ORDER BY created_at DESC", ())
 
     async def stats(self) -> dict[str, Any]:
         """Return catalog counts grouped by file type."""

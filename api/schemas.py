@@ -7,6 +7,33 @@ from pydantic import BaseModel, Field
 
 FileType = Literal["pdf", "image", "video", "audio", "text", "docx"]
 AnswerMode = Literal["quick", "detailed", "evidence"]
+HealthState = Literal["ok", "degraded", "offline"]
+DatabaseHealthState = Literal["ok", "unavailable"]
+GoogleHealthState = Literal["configured", "missing_key"]
+PineconeHealthState = Literal["ready", "missing_key", "index_missing", "unavailable", "invalid_configuration"]
+
+
+class HealthServices(BaseModel):
+    """Readiness state for each service used by the application."""
+
+    database: DatabaseHealthState
+    google: GoogleHealthState
+    pinecone: PineconeHealthState
+
+
+class HealthModels(BaseModel):
+    """Models configured for embeddings and generation."""
+
+    embedding: str
+    generation: str
+
+
+class HealthStatus(BaseModel):
+    """Safe public health contract."""
+
+    status: HealthState
+    services: HealthServices
+    models: HealthModels
 
 
 class ChatHistoryMessage(BaseModel):

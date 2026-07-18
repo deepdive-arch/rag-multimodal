@@ -1,11 +1,14 @@
-import { ChevronDown, ChevronUp, FileArchive, FileAudio, FileImage, FileText, FileVideo, Network, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronUp, FileArchive, FileAudio, FileImage, FileText, FileVideo, Trash2 } from "lucide-react"
+import Image from "next/image"
 import type { Ref } from "react"
 import { useState } from "react"
 import { FileFilters } from "@/components/FileFilters"
 import { UploadDropzone } from "@/components/UploadDropzone"
+import { sourceLimitLabel } from "@/lib/source-limit"
 import type { AnswerMode, FileType, IngestedFile, QueryFilters } from "@/types"
 
 interface SidebarProps {
+  isDrawerOpen?: boolean
   files: IngestedFile[]
   filters: QueryFilters
   topK: number
@@ -13,7 +16,7 @@ interface SidebarProps {
   isUploading: boolean
   uploadSummary: { success: number; errors: string[]; catalogError: string }
   sidebarRef?: Ref<HTMLElement>
-  onFiles: (files: File[]) => Promise<void>
+  onFiles: (files: File[]) => Promise<boolean>
   onFilters: (filters: QueryFilters) => void
   onTopK: (value: number) => void
   onAnswerMode: (mode: AnswerMode) => void
@@ -41,14 +44,13 @@ function statusLabel(status: IngestedFile["status"]) {
   return "Pronto"
 }
 
-export function Sidebar({ sidebarRef, ...props }: SidebarProps) {
+export function Sidebar({ sidebarRef, isDrawerOpen = false, ...props }: SidebarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   return (
-    <aside id="rag-sidebar" ref={sidebarRef} tabIndex={-1} aria-label="Biblioteca de arquivos" className="sidebar-shell">
-      <header className="brand-block">
-        <div className="brand-mark" aria-hidden="true"><Network size={20} /></div>
+    <aside id="rag-sidebar" ref={sidebarRef} tabIndex={-1} role={isDrawerOpen ? "dialog" : undefined} aria-modal={isDrawerOpen ? true : undefined} aria-label="Biblioteca de arquivos" className="sidebar-shell">
+        <header className="brand-block">
+        <div className="brand-logo-frame"><Image src="/logo-rag-multimodal.png" alt="RAG Multimodal" width={1254} height={1254} priority className="brand-logo-image" /></div>
         <div className="brand-copy">
-          <p className="brand-eyebrow">RAG multimodal</p>
           <p className="brand-title">Biblioteca semântica</p>
           <p className="brand-subtitle">Perguntas ancoradas nos seus arquivos</p>
         </div>
@@ -85,17 +87,20 @@ export function Sidebar({ sidebarRef, ...props }: SidebarProps) {
           </button>
           {settingsOpen && <div id="query-settings" className="settings-panel">
             <div>
-              <label className="field-label" htmlFor="top-k"><span>Quantidade de fontes</span><span className="range-output">{props.topK}</span></label>
-              <p className="field-help">Define quantos trechos relevantes serão considerados.</p>
-              <input id="top-k" className="mt-2 w-full accent-[var(--accent)]" type="range" min="1" max="20" value={props.topK} onChange={(event) => props.onTopK(Number(event.target.value))} />
+              <label className="field-label" htmlFor="top-k"><span>Quantidade de fontes</span><span className="range-output">{sourceLimitLabel(props.topK)}</span></label>
+              <p id="top-k-help" className="field-help">Define o número máximo de trechos considerados em cada consulta.</p>
+              <input id="top-k" className="range-input mt-2 w-full" type="range" min="1" max="20" value={props.topK} aria-valuetext={sourceLimitLabel(props.topK)} aria-describedby="top-k-help" onChange={(event) => props.onTopK(Number(event.target.value))} />
             </div>
             <div>
               <label className="field-label" htmlFor="answer-mode">Modo de resposta</label>
-              <select id="answer-mode" className="settings-select mt-2" value={props.answerMode} onChange={(event) => props.onAnswerMode(event.target.value as AnswerMode)}>
-                <option value="quick">Rápida</option>
-                <option value="detailed">Detalhada</option>
-                <option value="evidence">Somente evidências</option>
-              </select>
+              <div className="select-control mt-2">
+                <select id="answer-mode" className="settings-select" value={props.answerMode} onChange={(event) => props.onAnswerMode(event.target.value as AnswerMode)}>
+                  <option value="quick">Rápida</option>
+                  <option value="detailed">Detalhada</option>
+                  <option value="evidence">Somente evidências</option>
+                </select>
+                <ChevronDown className="select-chevron" aria-hidden="true" size={16} />
+              </div>
             </div>
           </div>}
         </section>

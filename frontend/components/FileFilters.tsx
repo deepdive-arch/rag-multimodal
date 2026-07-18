@@ -1,4 +1,5 @@
 import type { FileType, IngestedFile, QueryFilters } from "@/types"
+import { ChevronDown } from "lucide-react"
 
 interface FileFiltersProps {
   files: IngestedFile[]
@@ -31,10 +32,13 @@ export function FileFilters({ files, filters, onChange }: FileFiltersProps) {
         })}
       </div>
       <label className="field-label mt-2" htmlFor="file-filter">Arquivo específico</label>
-      <select id="file-filter" className="file-select mt-2" value={filters.doc_id ?? ""} onChange={(event) => onChange(event.target.value ? { doc_id: event.target.value } : {})}>
-        <option value="">Arquivo específico</option>
-        {files.filter((file) => file.status === "ready").map((file) => <option key={file.doc_id} value={file.doc_id}>{file.name}</option>)}
-      </select>
+      <div className="select-control mt-2">
+        <select id="file-filter" className="file-select" value={filters.doc_id ?? ""} onChange={(event) => onChange(event.target.value ? { doc_id: event.target.value } : {})}>
+          <option value="">Arquivo específico</option>
+          {files.filter((file) => file.status === "ready").map((file) => <option key={file.doc_id} value={file.doc_id}>{file.name}</option>)}
+        </select>
+        <ChevronDown className="select-chevron" aria-hidden="true" size={16} />
+      </div>
     </section>
   )
 }

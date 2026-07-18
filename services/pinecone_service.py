@@ -3,12 +3,15 @@
 import random
 import time
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal
 
 from pinecone import Pinecone, ServerlessSpec
 
 from core.config import Settings, get_settings
 from core.exceptions import ConfigurationError, ExternalServiceError
+
+
+PineconeHealthState = Literal["ready", "missing_key", "index_missing", "unavailable", "invalid_configuration"]
 
 
 @lru_cache(maxsize=1)
@@ -70,14 +73,18 @@ def delete_all_vectors(settings: Settings | None = None) -> None:
     _with_retry(lambda: get_index(settings).delete(delete_all=True, namespace=settings.pinecone_namespace))
 
 
-def index_health(settings: Settings | None = None) -> str:
-    """Return ready, unavailable or not_configured without leaking details."""
+def index_health(settings: Settings | None = None) -> PineconeHealthState:
+    """Classify Pinecone readiness without leaking provider details."""
     settings = settings or get_settings()
     if not settings.pinecone_api_key:
-        return "not_configured"
+        return "missing_key"
     try:
         description = _describe_index(get_pinecone_client(), settings.pinecone_index_name)
-        return "ready" if description and _is_ready(description) else "unavailable"
+        if description is None:
+            return "index_missing"
+        if not _matches_configuration(description, settings):
+            return "invalid_configuration"
+        return "ready" if _is_ready(description) else "unavailable"
     except Exception:
         return "unavailable"
 
@@ -89,11 +96,13 @@ def _describe_index(client: Pinecone, name: str) -> Any:
 
 
 def _index_exists(manager: Any, name: str) -> bool:
-    """Check index existence without turning an absent index into a fatal error."""
-    try:
-        return any((getattr(item, "name", None) or (item.get("name", "") if isinstance(item, dict) else "")) == name for item in manager.list())
-    except Exception:
-        return False
+    """Check index existence while preserving provider errors for classification."""
+    return any(_index_name(item) == name for item in manager.list())
+
+
+def _index_name(item: Any) -> str:
+    """Read an index name from SDK objects or dictionaries."""
+    return item.get("name", "") if isinstance(item, dict) else getattr(item, "name", "")
 
 
 def _create_index(client: Pinecone, settings: Settings) -> None:
@@ -119,6 +128,13 @@ def _is_ready(description: Any) -> bool:
     """Read readiness from SDK objects or dictionaries."""
     status = getattr(description, "status", None) or (description.get("status", {}) if isinstance(description, dict) else {})
     return bool(getattr(status, "ready", None) if not isinstance(status, dict) else status.get("ready"))
+
+
+def _matches_configuration(description: Any, settings: Settings) -> bool:
+    """Check only the essential index shape configured by the application."""
+    dimension = getattr(description, "dimension", None) or (description.get("dimension") if isinstance(description, dict) else None)
+    metric = getattr(description, "metric", None) or (description.get("metric") if isinstance(description, dict) else None)
+    return dimension == settings.embedding_dimension and metric == "cosine"
 
 
 def _validate_description(description: Any, settings: Settings) -> None:

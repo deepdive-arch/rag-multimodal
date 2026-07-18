@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 !frontend/.env.local.example
+!product-demo/.env.product-demo.example
+product-demo/.env.product-demo
 frontend/.env.local
 frontend/.env.*.local
 credentials.json
@@ -11,6 +13,8 @@ token.json
 # Dados locais e uploads
 .tmp/*
 !.tmp/.gitkeep
+.tmp/product-demo/
+product-demo/output/
 *.db
 *.sqlite
 *.sqlite3
@@ -44,3 +48,8 @@ dist/
 # Sistema e IDE
 .DS_Store
 Thumbs.db
+
+# Ferramentas locais de agentes e auditoria
+.claude/
+.impeccable/
+.playwright/

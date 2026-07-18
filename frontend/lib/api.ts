@@ -3,6 +3,24 @@ import type { HealthStatus, IngestedFile, QueryPayload, QueryResult, Stats } fro
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"
 const REQUEST_TIMEOUT_MS = 90_000
 
+export class RequestCancelledError extends Error {
+  constructor() {
+    super("A espera pela resposta foi interrompida.")
+    this.name = "RequestCancelledError"
+  }
+}
+
+export class RequestTimeoutError extends Error {
+  constructor() {
+    super("A consulta excedeu o tempo limite.")
+    this.name = "RequestTimeoutError"
+  }
+}
+
+export function isRequestCancelledError(error: unknown): error is RequestCancelledError {
+  return error instanceof RequestCancelledError
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const text = await response.text()
   let data: unknown = null
@@ -12,21 +30,35 @@ async function parseResponse<T>(response: Response): Promise<T> {
     data = null
   }
   if (!response.ok) {
-    const detail = typeof data === "object" && data && "detail" in data ? String(data.detail) : "A API não retornou uma resposta válida."
+    const detail = typeof data === "object" && data && "detail" in data && data.detail ? String(data.detail) : statusMessage(response.status)
     throw new Error(detail)
   }
   return data as T
 }
 
+function statusMessage(status: number): string {
+  if (status === 413) return "Arquivo excede o limite configurado."
+  if (status === 415) return "Tipo ou assinatura de arquivo não suportada."
+  if (status === 422) return "O arquivo não contém conteúdo indexável."
+  return "A API não retornou uma resposta válida."
+}
+
 async function request<T>(path: string, options?: RequestInit, signal?: AbortSignal): Promise<T> {
   const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-  const onAbort = () => controller.abort()
-  signal?.addEventListener("abort", onAbort, { once: true })
+  let wasExternallyAborted = false
+  let didTimeout = false
+  const onAbort = () => { wasExternallyAborted = true; controller.abort() }
+  const timeout = window.setTimeout(() => { didTimeout = true; controller.abort() }, REQUEST_TIMEOUT_MS)
+  if (signal?.aborted) onAbort()
+  else signal?.addEventListener("abort", onAbort, { once: true })
   try {
     const response = await fetch(`${BASE}${path}`, { ...options, signal: controller.signal })
     return await parseResponse<T>(response)
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      if (wasExternallyAborted) throw new RequestCancelledError()
+      if (didTimeout) throw new RequestTimeoutError()
+    }
     if (error instanceof TypeError) throw new Error(`Não foi possível conectar ao backend em ${BASE}. Verifique se a API está em execução.`)
     throw error
   } finally {
