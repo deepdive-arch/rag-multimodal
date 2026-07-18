@@ -8,6 +8,30 @@ O projeto recebe arquivos, extrai e normaliza seu conteúdo, gera embeddings, re
 
 ## Arquitetura
 
+<p align="center">
+  <img
+    src="docs/images/rag-multimodal-architeture.png"
+    alt="Arquitetura do RAG Multimodal"
+    width="900"
+  />
+</p>
+
+<p align="center">
+  Arquitetura do RAG Multimodal
+</p>
+
+<p align="center">
+  <img
+    src="docs/images/rag-multimodal-architeture2.png"
+    alt="Divisão Arquitetural do RAG Multimodal"
+    width="900"
+  />
+</p>
+
+<p align="center">
+  Divisão Arquitetural do RAG Multimodal
+</p>
+
 Consulte o [diagrama de arquitetura de runtime](docs/runtime-architecture.html) para uma visão interativa da comunicação entre frontend, backend, armazenamento local, Gemini e Pinecone.
 
 ```text
