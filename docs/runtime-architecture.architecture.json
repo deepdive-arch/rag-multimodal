@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RAG Multimodal — High-Level Runtime",
+    "subtitle": "Primary query path, local trust boundary, and managed external dependencies",
+    "output": "runtime-architecture.html"
+  },
+  "components": [
+    { "id": "users", "type": "external", "label": "User", "sublabel": "Browser", "pos": [40, 300], "size": [120, 60] },
+    { "id": "frontend", "type": "frontend", "label": "Next.js UI", "sublabel": "React 19 / :3000", "pos": [220, 300], "size": [130, 60] },
+    { "id": "api", "type": "backend", "label": "FastAPI API", "sublabel": "HTTP / :8000", "pos": [410, 300], "size": [140, 60] },
+    { "id": "rag", "type": "backend", "label": "RAG pipeline", "sublabel": "retrieve + generate", "pos": [620, 300], "size": [150, 60], "tag": "primary path" },
+    { "id": "ingestion", "type": "backend", "label": "Ingestion pipeline", "sublabel": "validate + extract + index", "pos": [620, 150], "size": [150, 60] },
+    { "id": "localdata", "type": "database", "label": "Local data plane", "sublabel": "SQLite + .tmp/uploads", "pos": [620, 470], "size": [150, 60], "tag": "local only" },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "1536d cosine / namespace", "pos": [880, 300], "size": [150, 60], "tag": "managed vector index" },
+    { "id": "gemini", "type": "cloud", "label": "Google Gemini", "sublabel": "embeddings + answer", "pos": [1090, 300], "size": [150, 60], "tag": "managed model API" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Local application trust boundary", "wraps": ["frontend", "api", "rag", "ingestion", "localdata"] },
+    { "kind": "security-group", "label": "External provider boundary", "wraps": ["pinecone", "gemini"] }
+  ],
+  "connections": [
+    { "from": "users", "to": "frontend", "label": "HTTPS", "variant": "emphasis" },
+    { "from": "frontend", "to": "api", "label": "REST /api/query", "variant": "emphasis", "labelDy": -24 },
+    { "from": "api", "to": "rag", "label": "question + history", "variant": "emphasis", "labelDy": -24 },
+    { "from": "rag", "to": "pinecone", "label": "vector search", "variant": "emphasis" },
+    { "from": "rag", "to": "gemini", "label": "embed + ground", "variant": "emphasis", "fromSide": "top", "toSide": "top", "labelDy": -18 },
+    { "from": "rag", "to": "api", "label": "answer + sources", "variant": "default", "fromSide": "bottom", "toSide": "bottom", "labelDy": 24 },
+    { "from": "api", "to": "ingestion", "label": "upload path", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "labelDy": 42 },
+    { "from": "ingestion", "to": "localdata", "label": "catalog + media", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 42 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Primary request path", "items": ["The browser submits a question to Next.js, which calls FastAPI at the configured API base URL", "FastAPI runs the blocking query in a worker thread and passes bounded chat history to the RAG pipeline", "The pipeline returns only the generated answer and the source metadata selected for the response"] },
+    { "dot": "emerald", "title": "Data and ingestion", "items": ["Uploads are streamed, sanitized, SHA-256 identified, signature-validated, and stored under .tmp/uploads", "Media extraction normalizes TXT, Markdown, DOCX, PDF, image, audio, and video inputs into indexable items", "Gemini creates embeddings; Pinecone stores vectors in the configured namespace; SQLite tracks files, chunks, and feedback", "CLI tools call ingestion/query services directly and are an operational entry point, not a separate network tier"] },
+    { "dot": "rose", "title": "Trust boundaries", "items": ["The local boundary contains the browser-facing UI, FastAPI, synchronous service workers, SQLite, and local files", "Gemini and Pinecone are external managed services reached through API keys and bounded provider adapters", "Retrieved document content is treated as data; generation is instructed not to follow document-embedded instructions", "Admin-only delete and clear operations require X-Admin-Token when configured"] }
+  ]
+}
