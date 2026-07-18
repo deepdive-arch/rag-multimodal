@@ -87,6 +87,33 @@ cp .env.example .env
 
 Preencha `GOOGLE_API_KEY` e `PINECONE_API_KEY` no `.env`. Não versione `.env`.
 
+### Docker
+
+O `Dockerfile` cria uma imagem somente para o backend FastAPI. O frontend Next.js continua sendo executado separadamente, conforme as instruções abaixo.
+
+Com o Docker em execução, na raiz do projeto:
+
+```bash
+docker build -t rag-multimodal-backend .
+docker run --rm --name rag-multimodal-backend --env-file .env -p 10000:10000 rag-multimodal-backend
+```
+
+O backend ficará disponível em `http://localhost:10000`. Para manter o banco SQLite, os uploads e os arquivos derivados fora do container, monte `.tmp` como volume:
+
+PowerShell:
+
+```powershell
+docker run --rm --name rag-multimodal-backend --env-file .env -p 10000:10000 -v "${PWD}\.tmp:/app/.tmp" rag-multimodal-backend
+```
+
+Linux/macOS:
+
+```bash
+docker run --rm --name rag-multimodal-backend --env-file .env -p 10000:10000 -v "$(pwd)/.tmp:/app/.tmp" rag-multimodal-backend
+```
+
+Para usar esse backend no frontend, configure `NEXT_PUBLIC_API_BASE_URL=http://localhost:10000` em `frontend/.env.local` antes de iniciar `npm run dev`. Verifique a execução em `http://localhost:10000/api/health`.
+
 ### Frontend
 
 PowerShell:
