@@ -1,0 +1,11 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["https://<frontend-service>.onrender.com"],
+      "AllowedMethods": ["PUT", "GET", "HEAD"],
+      "AllowedHeaders": ["Content-Type", "x-amz-meta-doc-id", "x-amz-meta-sha256", "x-amz-meta-original-name", "x-amz-meta-mime-type", "x-amz-meta-upload-version", "x-amz-content-sha256", "x-amz-date", "x-amz-user-agent"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}

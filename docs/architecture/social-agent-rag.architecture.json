@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Agent RAG Multimodal",
+    "subtitle": "From multimodal files to grounded answers",
+    "output": "social-agent-rag.html",
+    "viewBox": [1600, 920]
+  },
+  "components": [
+    { "id": "upload", "type": "external", "label": "User uploads", "sublabel": "files + question", "pos": [92, 188], "size": [138, 64] },
+    { "id": "validate", "type": "security", "label": "File validation", "sublabel": "type · size · safety", "pos": [270, 188], "size": [148, 64] },
+    { "id": "extract", "type": "backend", "label": "Multimodal extraction", "sublabel": "text · media · metadata", "pos": [180, 330], "size": [178, 64] },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "durable file storage", "pos": [180, 470], "size": [178, 64], "tag": "INGEST" },
+    { "id": "pdf", "type": "external", "label": "PDF", "pos": [76, 612], "size": [92, 52] },
+    { "id": "docx", "type": "external", "label": "DOCX", "pos": [188, 612], "size": [92, 52] },
+    { "id": "text", "type": "external", "label": "TXT / MD", "pos": [300, 612], "size": [92, 52] },
+    { "id": "images", "type": "external", "label": "Images", "pos": [76, 684], "size": [92, 52] },
+    { "id": "audio", "type": "external", "label": "Audio", "pos": [188, 684], "size": [92, 52] },
+    { "id": "video", "type": "external", "label": "Video", "pos": [300, 684], "size": [92, 52] },
+
+    { "id": "chunks", "type": "backend", "label": "Content chunks", "sublabel": "normalized context", "pos": [590, 300], "size": [168, 64] },
+    { "id": "embeddings", "type": "cloud", "label": "Gemini Embeddings", "sublabel": "semantic vectors", "pos": [800, 300], "size": [178, 64] },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone Vector Search", "sublabel": "nearest relevant chunks", "pos": [680, 470], "size": [208, 64], "tag": "UNDERSTAND" },
+
+    { "id": "question", "type": "external", "label": "User question", "sublabel": "natural language", "pos": [1070, 300], "size": [152, 64] },
+    { "id": "retrieval", "type": "backend", "label": "Semantic retrieval", "sublabel": "query → context", "pos": [1270, 300], "size": [168, 64] },
+    { "id": "gemini", "type": "cloud", "label": "Gemini", "sublabel": "grounded generation", "pos": [1265, 470], "size": [150, 64] },
+    { "id": "answer", "type": "backend", "label": "Grounded answer + sources", "sublabel": "traceable response", "pos": [1175, 620], "size": [230, 72], "tag": "ANSWER" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "01 · INGEST", "wraps": ["upload", "validate", "extract", "r2", "pdf", "docx", "text", "images", "audio", "video"], "pad": 28 },
+    { "kind": "region", "label": "02 · UNDERSTAND", "wraps": ["chunks", "embeddings", "pinecone"], "pad": 28 },
+    { "kind": "region", "label": "03 · ANSWER", "wraps": ["question", "retrieval", "gemini", "answer"], "pad": 28 }
+  ],
+  "connections": [
+    { "from": "upload", "to": "validate", "variant": "emphasis", "route": "straight" },
+    { "from": "validate", "to": "extract", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "orthogonal-v" },
+    { "from": "extract", "to": "r2", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "from": "pdf", "to": "extract", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "from": "docx", "to": "extract", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "from": "text", "to": "extract", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "from": "images", "to": "extract", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "from": "audio", "to": "extract", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "from": "video", "to": "extract", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "from": "r2", "to": "chunks", "label": "normalized content", "variant": "emphasis", "fromSide": "right", "toSide": "left", "route": "orthogonal-h", "labelAt": [480, 502] },
+    { "from": "chunks", "to": "embeddings", "variant": "emphasis", "route": "straight" },
+    { "from": "embeddings", "to": "pinecone", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "orthogonal-v" },
+    { "from": "question", "to": "retrieval", "variant": "emphasis", "route": "straight" },
+    { "from": "pinecone", "to": "retrieval", "label": "relevant context", "variant": "emphasis", "fromSide": "right", "toSide": "bottom", "via": [[1030, 502], [1030, 405], [1354, 405]], "labelAt": [1060, 390] },
+    { "from": "retrieval", "to": "gemini", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "orthogonal-v" },
+    { "from": "gemini", "to": "answer", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "orthogonal-v" }
+  ],
+  "cards": []
+}

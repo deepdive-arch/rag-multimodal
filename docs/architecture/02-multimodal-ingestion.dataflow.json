@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "RAG Multimodal — Pipeline de Ingestão",
+    "subtitle": "Upload direto ao R2, processamento efêmero, extração por modalidade e commit idempotente",
+    "output": "02-multimodal-ingestion.html",
+    "viewBox": [1240, 900]
+  },
+  "stages": [
+    { "label": "Intake" },
+    { "label": "Validate + Store" },
+    { "label": "Extract + Normalize" },
+    { "label": "Embed + Index" },
+    { "label": "Commit" }
+  ],
+  "nodes": [
+    { "id": "browser", "type": "frontend", "label": "Browser / Next.js", "sublabel": "metadata + SHA-256", "stage": 0, "row": 2, "tag": "uploadFileDirect" },
+    { "id": "api", "type": "backend", "label": "FastAPI upload API", "sublabel": "presign + complete", "stage": 1, "row": 2 },
+    { "id": "r2original", "type": "cloud", "label": "R2 original", "sublabel": "private object key", "stage": 1, "row": 4, "tag": "durable" },
+    { "id": "temp", "type": "database", "label": "Temp workspace", "sublabel": "downloaded input", "stage": 2, "row": 0, "tag": "ephemeral" },
+    { "id": "pdf", "type": "backend", "label": "PDF", "sublabel": "PyMuPDF: text / page PNG", "stage": 2, "row": 1 },
+    { "id": "docx", "type": "backend", "label": "DOCX", "sublabel": "paragraphs + tables", "stage": 2, "row": 2 },
+    { "id": "text", "type": "backend", "label": "TXT / Markdown", "sublabel": "UTF-8 + normalize", "stage": 2, "row": 3 },
+    { "id": "image", "type": "backend", "label": "Images", "sublabel": "Pillow verify / normalize", "stage": 2, "row": 4 },
+    { "id": "audio", "type": "backend", "label": "Áudio", "sublabel": "WAV / Mutagen duration", "stage": 2, "row": 4, "yOffset": 72 },
+    { "id": "video", "type": "backend", "label": "Vídeo", "sublabel": "OpenCV duration", "stage": 2, "row": 4, "yOffset": 144 },
+    { "id": "normalize", "type": "backend", "label": "Items + chunks", "sublabel": "normalize / chunking", "stage": 3, "row": 2 },
+    { "id": "derived", "type": "cloud", "label": "R2 derived", "sublabel": "rendered / normalized media", "stage": 3, "row": 0 },
+    { "id": "gemini", "type": "cloud", "label": "Gemini embeddings", "sublabel": "text or media → 1536d", "stage": 3, "row": 4 },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "vectors + metadata", "stage": 4, "row": 1 },
+    { "id": "postgres", "type": "database", "label": "Postgres catalog", "sublabel": "objects + chunks + state", "stage": 4, "row": 3 },
+    { "id": "ready", "type": "backend", "label": "Ready / polling", "sublabel": "status=ready + warnings", "stage": 4, "row": 4, "yOffset": 72 }
+  ],
+  "flows": [
+    { "from": "browser", "to": "api", "label": "presign metadata", "classification": "untrusted metadata", "variant": "emphasis" },
+    { "from": "api", "to": "r2original", "label": "signed PUT", "classification": "server-controlled key", "variant": "security", "fromSide": "bottom", "toSide": "top" },
+    { "from": "browser", "to": "r2original", "label": "file bytes", "classification": "direct browser upload", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "via": [[145, 240], [330, 240], [330, 600]], "labelAt": [230, 250] },
+    { "from": "r2original", "to": "temp", "label": "download + revalidate", "classification": "bytes in /tmp", "variant": "dashed", "fromSide": "right", "toSide": "left", "via": [[425, 600], [425, 128]], "labelAt": [445, 428] },
+    { "from": "temp", "to": "pdf", "label": "PDF", "variant": "default", "fromSide": "right", "toSide": "left" },
+    { "from": "temp", "to": "docx", "label": "DOCX", "variant": "default", "fromSide": "right", "toSide": "left", "labelAt": [530, 238] },
+    { "from": "temp", "to": "text", "label": "TXT / MD", "variant": "default", "fromSide": "right", "toSide": "left" },
+    { "from": "temp", "to": "image", "label": "image", "variant": "default", "fromSide": "right", "toSide": "left", "labelAt": [530, 352] },
+    { "from": "temp", "to": "audio", "label": "audio", "variant": "default", "fromSide": "right", "toSide": "left", "labelAt": [530, 428] },
+    { "from": "temp", "to": "video", "label": "video", "variant": "default", "fromSide": "right", "toSide": "left" },
+    { "from": "pdf", "to": "normalize", "label": "text / page image", "classification": "extract", "variant": "emphasis" },
+    { "from": "docx", "to": "normalize", "label": "paragraphs / tables", "classification": "extract", "variant": "emphasis" },
+    { "from": "text", "to": "normalize", "label": "normalized text", "classification": "extract", "variant": "emphasis" },
+    { "from": "image", "to": "normalize", "label": "image item", "classification": "validate", "variant": "emphasis" },
+    { "from": "audio", "to": "normalize", "label": "audio item", "classification": "validate", "variant": "emphasis" },
+    { "from": "video", "to": "normalize", "label": "video item", "classification": "validate", "variant": "emphasis" },
+    { "from": "pdf", "to": "derived", "label": "rendered page PNG", "classification": "R2 derived", "variant": "dashed", "fromSide": "right", "toSide": "left", "via": [[700, 242], [700, 128], [840, 128]], "labelAt": [730, 112] },
+    { "from": "image", "to": "derived", "label": "normalized JPEG", "classification": "R2 derived", "variant": "dashed", "fromSide": "right", "toSide": "left", "via": [[700, 584], [700, 128], [840, 128]], "labelAt": [735, 656] },
+    { "from": "normalize", "to": "gemini", "label": "text / media parts", "classification": "embedding input", "variant": "emphasis" },
+    { "from": "gemini", "to": "pinecone", "label": "1536d vectors", "classification": "vector index", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[1015, 584], [1015, 242]], "labelAt": [1035, 400] },
+    { "from": "derived", "to": "postgres", "label": "object refs", "classification": "metadata", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[1015, 128], [1015, 470], [1060, 470]], "labelAt": [1025, 450] },
+    { "from": "pinecone", "to": "postgres", "label": "vector IDs + chunks", "classification": "commit after upsert", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [1150, 360] },
+    { "from": "postgres", "to": "ready", "label": "status=ready", "classification": "polling state", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Common controls", "items": ["MIME, extensão, assinatura, tamanho, SHA-256 e quotas são validados", "Original é persistido no R2 antes do processamento", "Falhas acionam rollback best-effort e estado retryable"] },
+    { "dot": "violet", "title": "Modality paths", "items": ["PDF usa texto quando disponível e renderiza página escaneada para PNG", "DOCX lê parágrafos, headings e tabelas; TXT/Markdown viram chunks", "Imagens, áudio e vídeo são validados como itens multimodais; vídeo não indexa áudio interno"] },
+    { "dot": "rose", "title": "Persistence contract", "items": ["Vetores são upsertados no Pinecone antes do catálogo virar ready", "Postgres mantém referências de objetos e chunks para validar fontes", "O workspace local é descartado no finally; não é armazenamento persistente"] }
+  ]
+}

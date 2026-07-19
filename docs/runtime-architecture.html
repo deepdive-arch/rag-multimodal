@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.11.0">
-  <title>RAG Multimodal — High-Level Runtime Diagram</title>
+  <title>RAG Multimodal — Runtime Architecture Diagram</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -525,14 +525,14 @@
     <div class="header">
       <div class="header-row">
         <div class="pulse-dot"></div>
-        <h1>RAG Multimodal — High-Level Runtime</h1>
+        <h1>RAG Multimodal — Runtime Architecture</h1>
       </div>
-      <p class="subtitle">Primary query path, local trust boundary, and managed external dependencies</p>
+      <p class="subtitle">Consulta orquestrada pelo FastAPI; upload direto ao R2 e processamento efêmero</p>
     </div>
 
     <!-- Main Diagram -->
     <div class="diagram-container">
-      <svg viewBox="0 0 1310 618" role="img" aria-label="RAG Multimodal — High-Level Runtime — Primary query path, local trust boundary, and managed external dependencies (architecture diagram)">
+      <svg viewBox="0 0 1400 468" role="img" aria-label="RAG Multimodal — Runtime Architecture — Consulta orquestrada pelo FastAPI; upload direto ao R2 e processamento efêmero (architecture diagram)">
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -556,97 +556,104 @@
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Boundaries (behind everything) -->
-        <rect x="190" y="120" width="610" height="430" rx="12" class="c-region" stroke-width="1"/>
-        <text x="198" y="138" class="t-cloud" font-size="9" font-weight="600">Local application trust boundary</text>
+        <rect x="190" y="290" width="680" height="110" rx="12" class="c-region" stroke-width="1"/>
+        <text x="198" y="308" class="t-cloud" font-size="9" font-weight="600">Render runtime: Static Site + Web Service</text>
 
-        <rect x="850" y="270" width="420" height="110" rx="8" class="c-security-group" stroke-width="1"/>
-        <text x="858" y="288" class="t-security" font-size="9" font-weight="600">External provider boundary</text>
+        <rect x="400" y="70" width="230" height="110" rx="8" class="c-security-group" stroke-width="1"/>
+        <text x="408" y="88" class="t-security" font-size="9" font-weight="600">Private object storage boundary</text>
+
+        <rect x="890" y="70" width="470" height="330" rx="8" class="c-security-group" stroke-width="1"/>
+        <text x="898" y="88" class="t-security" font-size="9" font-weight="600">Managed data and AI providers</text>
 
         <!-- Connection paths (before components for correct z-order) -->
-        <path d="M 160 330 L 220 330" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 350 330 L 410 330" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 550 330 L 620 330" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 770 330 L 880 330" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 695 300 L 1165 300" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 695 360 L 480 360" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path d="M 480 300 L 579.5 300 Q 587.5 300 587.5 292 L 587.5 218 Q 587.5 210 595.5 210 L 695 210" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 695 210 L 695 470" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 160 350 L 220 350" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 360 350 L 430 350" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 100 320 L 100 238 Q 100 230 108 230 L 372 230 Q 380 230 380 222 L 380 138 Q 380 130 388 130 L 430 130" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 515 160 L 512.5 160 Q 510 160 510 162.5 L 510 317.5 Q 510 320 507.5 320 L 505 320" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 580 350 L 670 350" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 840 350 L 920 350" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 505 320 L 505 278 Q 505 270 513 270 L 992 270 Q 1000 270 1000 278 L 1000 320" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 505 380 L 505 422 Q 505 430 513 430 L 1237 430 Q 1245 430 1245 422 L 1245 380" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 580 350 L 602 350 Q 610 350 610 342 L 610 218 Q 610 210 618 210 L 852 210 Q 860 210 860 202 L 860 138 Q 860 130 868 130 L 920 130" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
 
         <!-- Components -->
-        <rect x="40" y="300" width="120" height="60" rx="6" class="c-mask"/>
-        <rect x="40" y="300" width="120" height="60" rx="6" class="c-external" stroke-width="1.5"/>
-        <text x="100" y="328" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">User</text>
-        <text x="100" y="344" class="t-muted" font-size="9" text-anchor="middle">Browser</text>
+        <rect x="40" y="320" width="120" height="60" rx="6" class="c-mask"/>
+        <rect x="40" y="320" width="120" height="60" rx="6" class="c-external" stroke-width="1.5"/>
+        <text x="100" y="348" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Browser</text>
+        <text x="100" y="364" class="t-muted" font-size="9" text-anchor="middle">usuário / HTTPS</text>
 
-        <rect x="220" y="300" width="130" height="60" rx="6" class="c-mask"/>
-        <rect x="220" y="300" width="130" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
-        <text x="285" y="328" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Next.js UI</text>
-        <text x="285" y="344" class="t-muted" font-size="9" text-anchor="middle">React 19 / :3000</text>
+        <rect x="220" y="320" width="140" height="60" rx="6" class="c-mask"/>
+        <rect x="220" y="320" width="140" height="60" rx="6" class="c-frontend" stroke-width="1.5"/>
+        <text x="290" y="348" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Next.js</text>
+        <text x="290" y="364" class="t-muted" font-size="9" text-anchor="middle">Static Site / Render</text>
 
-        <rect x="410" y="300" width="140" height="60" rx="6" class="c-mask"/>
-        <rect x="410" y="300" width="140" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="480" y="328" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">FastAPI API</text>
-        <text x="480" y="344" class="t-muted" font-size="9" text-anchor="middle">HTTP / :8000</text>
+        <rect x="430" y="320" width="150" height="60" rx="6" class="c-mask"/>
+        <rect x="430" y="320" width="150" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="505" y="348" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">FastAPI</text>
+        <text x="505" y="364" class="t-muted" font-size="9" text-anchor="middle">REST + RAG orchestration</text>
+        <text x="505" y="372" class="t-backend" font-size="7" text-anchor="middle">migrations + 1 worker</text>
 
-        <rect x="620" y="300" width="150" height="60" rx="6" class="c-mask"/>
-        <rect x="620" y="300" width="150" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="695" y="328" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RAG pipeline</text>
-        <text x="695" y="344" class="t-muted" font-size="9" text-anchor="middle">retrieve + generate</text>
-        <text x="695" y="352" class="t-backend" font-size="7" text-anchor="middle">primary path</text>
+        <rect x="430" y="100" width="170" height="60" rx="6" class="c-mask"/>
+        <rect x="430" y="100" width="170" height="60" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="515" y="128" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Cloudflare R2</text>
+        <text x="515" y="144" class="t-muted" font-size="9" text-anchor="middle">private bucket / presigned URLs</text>
+        <text x="515" y="152" class="t-cloud" font-size="7" text-anchor="middle">durable objects</text>
 
-        <rect x="620" y="150" width="150" height="60" rx="6" class="c-mask"/>
-        <rect x="620" y="150" width="150" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="695" y="178" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ingestion pipeline</text>
-        <text x="695" y="194" class="t-muted" font-size="9" text-anchor="middle">validate + extract + index</text>
+        <rect x="670" y="320" width="170" height="60" rx="6" class="c-mask"/>
+        <rect x="670" y="320" width="170" height="60" rx="6" class="c-database" stroke-width="1.5"/>
+        <text x="755" y="348" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ephemeral workspace</text>
+        <text x="755" y="364" class="t-muted" font-size="9" text-anchor="middle">/tmp/rag-processing</text>
+        <text x="755" y="372" class="t-database" font-size="7" text-anchor="middle">never persistent</text>
 
-        <rect x="620" y="470" width="150" height="60" rx="6" class="c-mask"/>
-        <rect x="620" y="470" width="150" height="60" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="695" y="498" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Local data plane</text>
-        <text x="695" y="514" class="t-muted" font-size="9" text-anchor="middle">SQLite + .tmp/uploads</text>
-        <text x="695" y="522" class="t-database" font-size="7" text-anchor="middle">local only</text>
+        <rect x="920" y="100" width="180" height="60" rx="6" class="c-mask"/>
+        <rect x="920" y="100" width="180" height="60" rx="6" class="c-database" stroke-width="1.5"/>
+        <text x="1010" y="128" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Supabase Postgres</text>
+        <text x="1010" y="144" class="t-muted" font-size="9" text-anchor="middle">catalog / quota / audit</text>
+        <text x="1010" y="152" class="t-database" font-size="7" text-anchor="middle">Supavisor :5432</text>
 
-        <rect x="880" y="300" width="150" height="60" rx="6" class="c-mask"/>
-        <rect x="880" y="300" width="150" height="60" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="955" y="328" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Pinecone</text>
-        <text x="955" y="344" class="t-muted" font-size="9" text-anchor="middle">1536d cosine / namespace</text>
-        <text x="955" y="352" class="t-cloud" font-size="7" text-anchor="middle">managed vector index</text>
+        <rect x="920" y="320" width="160" height="60" rx="6" class="c-mask"/>
+        <rect x="920" y="320" width="160" height="60" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="1000" y="348" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Google Gemini</text>
+        <text x="1000" y="364" class="t-muted" font-size="9" text-anchor="middle">embedding + generation</text>
 
-        <rect x="1090" y="300" width="150" height="60" rx="6" class="c-mask"/>
-        <rect x="1090" y="300" width="150" height="60" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="1165" y="328" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Google Gemini</text>
-        <text x="1165" y="344" class="t-muted" font-size="9" text-anchor="middle">embeddings + answer</text>
-        <text x="1165" y="352" class="t-cloud" font-size="7" text-anchor="middle">managed model API</text>
+        <rect x="1160" y="320" width="170" height="60" rx="6" class="c-mask"/>
+        <rect x="1160" y="320" width="170" height="60" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="1245" y="348" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Pinecone</text>
+        <text x="1245" y="364" class="t-muted" font-size="9" text-anchor="middle">dense 1536d / cosine</text>
+        <text x="1245" y="372" class="t-cloud" font-size="7" text-anchor="middle">production namespace</text>
 
         <!-- Connection labels -->
-        <rect x="173" y="310" width="34" height="14" rx="3" class="c-mask"/>
-        <text x="190" y="320" class="t-backend" font-size="8" text-anchor="middle">HTTPS</text>
-        <rect x="339" y="286" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="380" y="296" class="t-backend" font-size="8" text-anchor="middle">REST /api/query</text>
-        <rect x="536.8" y="286" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
-        <text x="585" y="296" class="t-backend" font-size="8" text-anchor="middle">question + history</text>
-        <rect x="788.8" y="310" width="72.4" height="14" rx="3" class="c-mask"/>
-        <text x="825" y="320" class="t-backend" font-size="8" text-anchor="middle">vector search</text>
-        <rect x="891.4" y="262" width="77.2" height="14" rx="3" class="c-mask"/>
-        <text x="930" y="272" class="t-backend" font-size="8" text-anchor="middle">embed + ground</text>
-        <rect x="544.1" y="364" width="86.8" height="14" rx="3" class="c-mask"/>
-        <text x="587.5" y="374" class="t-muted" font-size="8" text-anchor="middle">answer + sources</text>
-        <rect x="556.1" y="277" width="62.8" height="14" rx="3" class="c-mask"/>
-        <text x="587.5" y="287" class="t-messagebus" font-size="8" text-anchor="middle">upload path</text>
-        <rect x="654" y="232" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="695" y="242" class="t-messagebus" font-size="8" text-anchor="middle">catalog + media</text>
+        <rect x="173" y="330" width="34" height="14" rx="3" class="c-mask"/>
+        <text x="190" y="340" class="t-backend" font-size="8" text-anchor="middle">HTTPS</text>
+        <rect x="363.6" y="306" width="62.8" height="14" rx="3" class="c-mask"/>
+        <text x="395" y="316" class="t-backend" font-size="8" text-anchor="middle">REST /api/*</text>
+        <rect x="203.8" y="214" width="72.4" height="14" rx="3" class="c-mask"/>
+        <text x="240" y="224" class="t-backend" font-size="8" text-anchor="middle">presigned PUT</text>
+        <rect x="480.6" y="226" width="134.8" height="14" rx="3" class="c-mask"/>
+        <text x="548" y="236" class="t-messagebus" font-size="8" text-anchor="middle">complete / HEAD / download</text>
+        <rect x="569.6" y="384" width="110.8" height="14" rx="3" class="c-mask"/>
+        <text x="625" y="394" class="t-messagebus" font-size="8" text-anchor="middle">background processing</text>
+        <rect x="843.8" y="384" width="72.4" height="14" rx="3" class="c-mask"/>
+        <text x="880" y="394" class="t-messagebus" font-size="8" text-anchor="middle">media context</text>
+        <rect x="706.6" y="252" width="86.8" height="14" rx="3" class="c-mask"/>
+        <text x="750" y="262" class="t-backend" font-size="8" text-anchor="middle">embed / generate</text>
+        <rect x="811.4" y="412" width="77.2" height="14" rx="3" class="c-mask"/>
+        <text x="850" y="422" class="t-backend" font-size="8" text-anchor="middle">query / upsert</text>
+        <rect x="698.8" y="194" width="72.4" height="14" rx="3" class="c-mask"/>
+        <text x="735" y="204" class="t-security" font-size="8" text-anchor="middle">state + quota</text>
 
         <!-- Legend -->
-        <text x="40" y="589" class="t-primary" font-size="9" font-weight="600">Legend</text>
-        <rect x="40" y="594" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-        <text x="60" y="602" class="t-muted" font-size="8">External</text>
-        <rect x="138" y="594" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-        <text x="158" y="602" class="t-muted" font-size="8">Frontend</text>
-        <rect x="236" y="594" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-        <text x="256" y="602" class="t-muted" font-size="8">Backend</text>
-        <rect x="329" y="594" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-        <text x="349" y="602" class="t-muted" font-size="8">Database</text>
-        <rect x="427" y="594" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-        <text x="447" y="602" class="t-muted" font-size="8">Cloud</text>
+        <text x="40" y="439" class="t-primary" font-size="9" font-weight="600">Legend</text>
+        <rect x="40" y="444" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+        <text x="60" y="452" class="t-muted" font-size="8">External</text>
+        <rect x="138" y="444" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
+        <text x="158" y="452" class="t-muted" font-size="8">Frontend</text>
+        <rect x="236" y="444" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+        <text x="256" y="452" class="t-muted" font-size="8">Backend</text>
+        <rect x="329" y="444" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
+        <text x="349" y="452" class="t-muted" font-size="8">Cloud</text>
+        <rect x="412" y="444" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+        <text x="432" y="452" class="t-muted" font-size="8">Database</text>
       </svg>
     </div>
 
@@ -655,38 +662,36 @@
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>Primary request path</h3>
+          <h3>Primary query path</h3>
         </div>
         <ul>
-          <li>&bull; The browser submits a question to Next.js, which calls FastAPI at the configured API base URL</li>
-          <li>&bull; FastAPI runs the blocking query in a worker thread and passes bounded chat history to the RAG pipeline</li>
-          <li>&bull; The pipeline returns only the generated answer and the source metadata selected for the response</li>
+          <li>&bull; Browser → Next.js → FastAPI /api/query</li>
+          <li>&bull; FastAPI consulta o namespace production no Pinecone</li>
+          <li>&bull; FastAPI envia contexto recuperado ao Gemini e devolve resposta + fontes</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot emerald"></div>
-          <h3>Data and ingestion</h3>
+          <h3>Upload e persistência</h3>
         </div>
         <ul>
-          <li>&bull; Uploads are streamed, sanitized, SHA-256 identified, signature-validated, and stored under .tmp/uploads</li>
-          <li>&bull; Media extraction normalizes TXT, Markdown, DOCX, PDF, image, audio, and video inputs into indexable items</li>
-          <li>&bull; Gemini creates embeddings; Pinecone stores vectors in the configured namespace; SQLite tracks files, chunks, and feedback</li>
-          <li>&bull; CLI tools call ingestion/query services directly and are an operational entry point, not a separate network tier</li>
+          <li>&bull; Browser pede presign e faz PUT direto no bucket R2 privado</li>
+          <li>&bull; complete valida o objeto, baixa para /tmp e inicia o processamento</li>
+          <li>&bull; Postgres guarda catálogo/quota; R2 e Pinecone mantêm os dados duráveis</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot rose"></div>
-          <h3>Trust boundaries</h3>
+          <h3>Boundaries e controles</h3>
         </div>
         <ul>
-          <li>&bull; The local boundary contains the browser-facing UI, FastAPI, synchronous service workers, SQLite, and local files</li>
-          <li>&bull; Gemini and Pinecone are external managed services reached through API keys and bounded provider adapters</li>
-          <li>&bull; Retrieved document content is treated as data; generation is instructed not to follow document-embedded instructions</li>
-          <li>&bull; Admin-only delete and clear operations require X-Admin-Token when configured</li>
+          <li>&bull; Segredos e ADMIN_TOKEN ficam somente no backend</li>
+          <li>&bull; Container não persiste SQLite nem uploads; roda como app não-root</li>
+          <li>&bull; Migrations ocorrem antes do Uvicorn; exclusão fica limitada ao prefixo/namespace configurado</li>
         </ul>
       </div>
     </div>

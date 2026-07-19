@@ -13,7 +13,7 @@ from mutagen import File as MutagenFile
 from core.config import Settings, get_settings
 from core.exceptions import InvalidMediaError, MediaDurationExceededError
 from services.chunking import ChunkDraft, TextBlock, chunk_blocks, chunk_text, normalize_text
-from services.storage import file_type_for, mime_for
+from services.storage import file_type_for, mime_for, sanitize_filename
 
 
 @dataclass(frozen=True)
@@ -95,6 +95,8 @@ def _pdf_items(path: Path, doc_id: str, settings: Settings) -> list[MediaItem]:
             raise InvalidMediaError(f"PDF excede o limite de {settings.max_pdf_pages} páginas")
         items: list[MediaItem] = []
         for index, page in enumerate(document):
+            if page.rect.width * page.rect.height * (150 / 72) ** 2 > settings.max_pdf_page_pixels:
+                raise InvalidMediaError("PDF contém uma página com geometria excessiva")
             text = normalize_text(page.get_text("text"))
             if len(text) >= 50:
                 items.extend(_draft_item(draft, "pdf", settings) for draft in chunk_text(text, index + 1, settings=settings))
@@ -107,7 +109,7 @@ def _pdf_items(path: Path, doc_id: str, settings: Settings) -> list[MediaItem]:
 
 def _rendered_page_item(page: fitz.Page, doc_id: str, page_number: int, settings: Settings) -> MediaItem:
     """Render and persist one scanned PDF page."""
-    output_dir = settings.derived_dir / doc_id
+    output_dir = settings.temp_processing_dir / sanitize_filename(doc_id) / "derived"
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / f"page-{page_number:04d}.png"
     pixmap = page.get_pixmap(dpi=150, alpha=False)
@@ -121,14 +123,18 @@ def _image_item(path: Path, doc_id: str, settings: Settings) -> MediaItem:
         with Image.open(path) as image:
             image.verify()
         with Image.open(path) as image:
+            if image.width * image.height > settings.max_image_pixels:
+                raise InvalidMediaError("Imagem excede o limite de pixels")
             if path.suffix.lower() == ".gif" or path.suffix.lower() == ".webp":
-                output_dir = settings.derived_dir / doc_id
+                output_dir = settings.temp_processing_dir / sanitize_filename(doc_id) / "derived"
                 output_dir.mkdir(parents=True, exist_ok=True)
                 output = output_dir / "normalized-image.jpg"
                 frame = next(ImageSequence.Iterator(image)).convert("RGB")
                 frame.save(output, format="JPEG", quality=92)
                 warning = "GIF animado processado usando apenas o primeiro frame." if getattr(image, "is_animated", False) else "Imagem WebP normalizada para JPEG."
                 return MediaItem("", "image", "image", media_path=output, mime_type="image/jpeg", warnings=(warning,))
+    except InvalidMediaError:
+        raise
     except Exception as error:
         raise InvalidMediaError("Imagem corrompida ou ilegível") from error
     return MediaItem("", "image", "image", media_path=path, mime_type=mime_for(path))

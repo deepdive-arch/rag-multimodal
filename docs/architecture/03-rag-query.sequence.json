@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "RAG Multimodal — Fluxo de Consulta",
+    "subtitle": "Pergunta, embedding, busca Pinecone, validação de fontes, contexto Gemini e resposta",
+    "output": "03-rag-query.html",
+    "viewBox": [920, 930]
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "User", "sublabel": "question" },
+    { "id": "next", "type": "frontend", "label": "Next.js", "sublabel": "ChatArea / queryRag" },
+    { "id": "api", "type": "backend", "label": "FastAPI", "sublabel": "POST /api/query" },
+    { "id": "gemini_embed", "type": "cloud", "label": "Gemini Embed", "sublabel": "query embedding" },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "namespace query" },
+    { "id": "postgres", "type": "database", "label": "Postgres", "sublabel": "ready chunk refs" },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "optional media bytes" },
+    { "id": "gemini_gen", "type": "cloud", "label": "Gemini Gen", "sublabel": "grounded multimodal answer" }
+  ],
+  "segments": [
+    { "from": 150, "to": 250, "label": "01 / REQUEST" },
+    { "from": 270, "to": 515, "label": "02 / RETRIEVE" },
+    { "from": 535, "to": 755, "label": "03 / CONTEXT + GENERATE" },
+    { "from": 775, "to": 885, "label": "04 / RESPONSE" }
+  ],
+  "messages": [
+    { "from": "user", "to": "next", "y": 180, "label": "submit question + filters", "variant": "default" },
+    { "from": "next", "to": "api", "y": 220, "label": "POST /api/query", "variant": "emphasis" },
+    { "from": "api", "to": "postgres", "y": 270, "label": "reserve public quota", "variant": "security", "note": "only when PUBLIC_DEMO_MODE is enabled" },
+    { "from": "postgres", "to": "api", "y": 310, "label": "quota accepted", "variant": "return" },
+    { "from": "api", "to": "gemini_embed", "y": 350, "label": "embed query text", "variant": "emphasis" },
+    { "from": "gemini_embed", "to": "api", "y": 390, "label": "1536d embedding", "variant": "return" },
+    { "from": "api", "to": "pinecone", "y": 430, "label": "query namespace + filters", "variant": "emphasis" },
+    { "from": "pinecone", "to": "api", "y": 470, "label": "matches + metadata", "variant": "return" },
+    { "from": "api", "to": "postgres", "y": 510, "label": "validate ready chunks", "variant": "security" },
+    { "from": "postgres", "to": "api", "y": 550, "label": "valid source refs", "variant": "return" },
+    { "from": "api", "to": "r2", "y": 590, "label": "HEAD / download media", "variant": "dashed", "note": "only for recovered media sources" },
+    { "from": "r2", "to": "api", "y": 630, "label": "media bytes", "variant": "return" },
+    { "from": "api", "to": "gemini_gen", "y": 670, "label": "question + history + context", "variant": "emphasis" },
+    { "from": "gemini_gen", "to": "api", "y": 710, "label": "answer + used chunk IDs", "variant": "return" },
+    { "from": "api", "to": "next", "y": 770, "label": "answer + sources", "variant": "return" },
+    { "from": "next", "to": "user", "y": 820, "label": "render answer / citations", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "next", "from": 215, "to": 805, "type": "frontend" },
+    { "participant": "api", "from": 220, "to": 775, "type": "backend" },
+    { "participant": "gemini_embed", "from": 345, "to": 398, "type": "cloud" },
+    { "participant": "pinecone", "from": 425, "to": 478, "type": "cloud" },
+    { "participant": "postgres", "from": 265, "to": 560, "type": "database" },
+    { "participant": "r2", "from": 585, "to": 640, "type": "cloud" },
+    { "participant": "gemini_gen", "from": 665, "to": 720, "type": "cloud" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Question path", "items": ["Next.js envia pergunta, top_k, histórico limitado, filtros e answer_mode", "FastAPI executa retrieval e generation fora do event loop", "A resposta é retornada como JSON para o ChatArea"] },
+    { "dot": "violet", "title": "Search path", "items": ["Gemini cria embedding da pergunta", "Pinecone consulta o namespace configurado com metadata", "Retrieval remove scores baixos, deduplica, diversifica e confirma chunks ready no Postgres"] },
+    { "dot": "emerald", "title": "Context + sources", "items": ["Texto recuperado vira contexto; mídia gerenciada pode ser baixada do R2", "Gemini retorna resposta fundamentada e IDs de chunks usados", "FastAPI expõe apenas as fontes efetivamente usadas"] }
+  ]
+}

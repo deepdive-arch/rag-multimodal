@@ -19,7 +19,14 @@ docs
 product-demo
 tests
 workflows
-tools
+tools/*
+!tools/
+!tools/__init__.py
+!tools/setup_pinecone.py
+!tools/ingest.py
+!tools/query_rag.py
+!tools/cleanup_expired.py
+!tools/reconcile_persistence.py
 
 .agents
 .claude

@@ -1,21 +1,27 @@
 """Grounded Gemini answer generation with bounded multimodal context."""
 
+import asyncio
 from dataclasses import dataclass, field
 import logging
 import random
+import shutil
+from pathlib import Path
 import time
+from uuid import uuid4
 
 from google.genai import types
 
 from core.config import Settings, get_settings
-from core.exceptions import ConfigurationError, ExternalServiceError, InvalidMediaError
+from core.exceptions import ConfigurationError, ExternalServiceError, InvalidMediaError, ObjectStorageError
 from services.embeddings import get_google_client
 from services.retrieval import RetrievedSource
-from services.storage import safe_storage_path
+from services.storage import get_object_storage, is_managed_object_key
 
 
 logger = logging.getLogger("rag_multimodal.generation")
-INSUFFICIENT_CONTEXT_MESSAGE = "Não encontrei informações utilizáveis nos arquivos recuperados para responder com segurança."
+INSUFFICIENT_CONTEXT_MESSAGE = (
+    "Não encontrei informações utilizáveis nos arquivos recuperados para responder com segurança."
+)
 
 SYSTEM_PROMPT = """Você é o componente de resposta de um sistema RAG.
 
@@ -54,7 +60,13 @@ class GeneratedAnswer:
     used_chunk_ids: list[str] = field(default_factory=list)
 
 
-def generate_answer(question: str, sources: list[RetrievedSource], history: list[ChatHistoryMessage], answer_mode: str, settings: Settings | None = None) -> GeneratedAnswer:
+def generate_answer(
+    question: str,
+    sources: list[RetrievedSource],
+    history: list[ChatHistoryMessage],
+    answer_mode: str,
+    settings: Settings | None = None,
+) -> GeneratedAnswer:
     """Generate a grounded response or return deterministic insufficiency."""
     settings = settings or get_settings()
     contents, used_chunk_ids = _build_contents(question, sources, history, answer_mode, settings)
@@ -63,7 +75,11 @@ def generate_answer(question: str, sources: list[RetrievedSource], history: list
     if not settings.google_api_key:
         raise ConfigurationError("GOOGLE_API_KEY não configurada")
     try:
-        response = _with_retry(lambda: get_google_client().models.generate_content(model=settings.gemini_generation_model, contents=contents, config=_generation_config(settings)))
+        response = _with_retry(
+            lambda: get_google_client().models.generate_content(
+                model=settings.gemini_generation_model, contents=contents, config=_generation_config(settings)
+            )
+        )
     except Exception as error:
         raise ExternalServiceError("Falha ao gerar a resposta com Gemini") from error
     if _response_hit_token_limit(response):
@@ -74,8 +90,14 @@ def generate_answer(question: str, sources: list[RetrievedSource], history: list
 
 def _generation_config(settings: Settings) -> types.GenerateContentConfig:
     """Keep Gemini 3.x reasoning compact and reserve enough tokens for the answer."""
-    thinking_config = types.ThinkingConfig(thinking_level="low", include_thoughts=False) if settings.gemini_generation_model.startswith("gemini-3") else None
-    return types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, temperature=0.2, max_output_tokens=4096, thinking_config=thinking_config)
+    thinking_config = (
+        types.ThinkingConfig(thinking_level="low", include_thoughts=False)
+        if settings.gemini_generation_model.startswith("gemini-3")
+        else None
+    )
+    return types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT, temperature=0.2, max_output_tokens=4096, thinking_config=thinking_config
+    )
 
 
 def _response_hit_token_limit(response: object) -> bool:
@@ -84,7 +106,13 @@ def _response_hit_token_limit(response: object) -> bool:
     return getattr(reason, "value", reason) == "MAX_TOKENS"
 
 
-def _build_contents(question: str, sources: list[RetrievedSource], history: list[ChatHistoryMessage], answer_mode: str, settings: Settings) -> tuple[list[object], list[str]]:
+def _build_contents(
+    question: str,
+    sources: list[RetrievedSource],
+    history: list[ChatHistoryMessage],
+    answer_mode: str,
+    settings: Settings,
+) -> tuple[list[object], list[str]]:
     """Build ordered text and media parts while enforcing both media limits."""
     contents: list[object] = [_conversation_context(question, history, answer_mode, settings)]
     used_chunk_ids: list[str] = []
@@ -106,10 +134,14 @@ def _build_contents(question: str, sources: list[RetrievedSource], history: list
     return contents, used_chunk_ids
 
 
-def _conversation_context(question: str, history: list[ChatHistoryMessage], answer_mode: str, settings: Settings) -> str:
+def _conversation_context(
+    question: str, history: list[ChatHistoryMessage], answer_mode: str, settings: Settings
+) -> str:
     """Build the non-source portion of the generation context."""
     context = [_mode_instruction(answer_mode), f"Pergunta atual: {question}", "Histórico recente:"]
-    context.extend(f"{message.role}: {message.content[:4000]}" for message in history[-settings.max_chat_history_messages :])
+    context.extend(
+        f"{message.role}: {message.content[:4000]}" for message in history[-settings.max_chat_history_messages :]
+    )
     return "\n\n".join(context)
 
 
@@ -118,41 +150,67 @@ def _is_usable_text_source(source: RetrievedSource) -> bool:
     return bool(source.chunk_text.strip()) and not source.media_key
 
 
-def _load_media_part(source: RetrievedSource, media_count: int, media_bytes: int, settings: Settings) -> tuple[types.Part, int] | None:
+def _load_media_part(
+    source: RetrievedSource, media_count: int, media_bytes: int, settings: Settings
+) -> tuple[types.Part, int] | None:
     """Validate media metadata and budget before reading bytes."""
     if not source.media_key:
         _log_media_skip(source, 0, "missing_storage_key")
         return None
-    try:
-        media_path = safe_storage_path(source.media_key, settings)
-    except InvalidMediaError as error:
-        logger.error("media_context_invalid_storage_key", extra={"chunk_id": source.chunk_id, "reason": "invalid_storage_key"})
-        raise ExternalServiceError("Falha segura ao acessar o contexto multimodal") from error
     if media_count >= settings.max_media_parts_per_query:
         _log_media_skip(source, 0, "parts_limit")
         return None
-    if not media_path.is_file():
-        _log_media_skip(source, 0, "file_missing")
-        return None
+    temporary_path: Path | None = None
     try:
-        size = media_path.stat().st_size
-    except OSError:
-        _log_media_skip(source, 0, "stat_error")
+        media_path, size = _media_path_and_size(source, settings)
+    except InvalidMediaError as error:
+        logger.error(
+            "media_context_invalid_storage_key", extra={"chunk_id": source.chunk_id, "reason": "invalid_storage_key"}
+        )
+        raise ExternalServiceError("Falha segura ao acessar o contexto multimodal") from error
+    except (ConfigurationError, ObjectStorageError):
+        _log_media_skip(source, 0, "storage_error")
+        return None
+    if media_path is None:
+        _log_media_skip(source, 0, "file_missing")
         return None
     if media_bytes + size > settings.max_media_context_size_bytes:
         _log_media_skip(source, size, "budget_exceeded")
         return None
     try:
+        if is_managed_object_key(source.media_key, settings):
+            temporary_path = media_path
+            asyncio.run(get_object_storage(settings).download_to_path(source.media_key, media_path))
         data = media_path.read_bytes()
         return types.Part.from_bytes(data=data, mime_type=source.mime_type), size
     except (OSError, ValueError):
         _log_media_skip(source, size, "read_error")
         return None
+    except (ConfigurationError, ObjectStorageError):
+        _log_media_skip(source, size, "download_error")
+        return None
+    finally:
+        if temporary_path:
+            temporary_path.unlink(missing_ok=True)
+            shutil.rmtree(temporary_path.parent, ignore_errors=True)
+
+
+def _media_path_and_size(source: RetrievedSource, settings: Settings) -> tuple[Path | None, int]:
+    """Read size from R2 HEAD or from the legacy local test fixture."""
+    if is_managed_object_key(source.media_key, settings):
+        metadata = asyncio.run(get_object_storage(settings).head_object(source.media_key))
+        if metadata is None:
+            return None, 0
+        suffix = Path(source.file_name).suffix.lower()
+        return settings.temp_processing_dir / source.doc_id / f".query-media-{uuid4().hex}{suffix}", metadata.size_bytes
+    return None, 0
 
 
 def _log_media_skip(source: RetrievedSource, size_bytes: int, reason: str) -> None:
     """Log a safe media omission without paths or content."""
-    logger.warning("media_context_skipped", extra={"chunk_id": source.chunk_id, "size_bytes": size_bytes, "reason": reason})
+    logger.warning(
+        "media_context_skipped", extra={"chunk_id": source.chunk_id, "size_bytes": size_bytes, "reason": reason}
+    )
 
 
 def _source_context(index: int, source: RetrievedSource) -> str:
@@ -164,7 +222,11 @@ def _source_context(index: int, source: RetrievedSource) -> str:
 
 def _mode_instruction(answer_mode: str) -> str:
     """Return the selected response-mode instruction."""
-    return {"quick": "Modo: resposta direta em até três parágrafos.", "evidence": "Modo: priorize fatos, trechos e referências, com pouca interpretação.", "detailed": "Modo: resposta completa, organizada e com ressalvas."}.get(answer_mode, "Modo: resposta completa e fundamentada.")
+    return {
+        "quick": "Modo: resposta direta em até três parágrafos.",
+        "evidence": "Modo: priorize fatos, trechos e referências, com pouca interpretação.",
+        "detailed": "Modo: resposta completa, organizada e com ressalvas.",
+    }.get(answer_mode, "Modo: resposta completa e fundamentada.")
 
 
 def _with_retry(operation):

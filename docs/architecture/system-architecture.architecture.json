@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Agent RAG Multimodal — System Architecture",
+    "subtitle": "From user request to multimodal retrieval and grounded generation",
+    "output": "system-architecture.html",
+    "viewBox": [1500, 700]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "User", "sublabel": "browser", "pos": [40, 300], "size": [140, 64] },
+    { "id": "next", "type": "frontend", "label": "Next.js Frontend", "sublabel": "React / TypeScript", "pos": [220, 300], "size": [170, 64] },
+    { "id": "fastapi", "type": "backend", "label": "FastAPI Backend", "sublabel": "REST API", "pos": [460, 300], "size": [180, 64] },
+    { "id": "rag", "type": "backend", "label": "RAG Pipeline", "sublabel": "ingest · retrieve · generate", "pos": [710, 300], "size": [200, 64] },
+    { "id": "postgres", "type": "database", "label": "Postgres Catalog", "sublabel": "documents · chunks · quotas", "pos": [960, 150], "size": [200, 64] },
+    { "id": "sqlite", "type": "database", "label": "SQLite (legacy)", "sublabel": "read-only migration source", "pos": [960, 490], "size": [200, 64], "tag": "migration tool" },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "private objects", "pos": [1210, 300], "size": [190, 64] },
+    { "id": "gemini", "type": "cloud", "label": "Google Gemini", "sublabel": "embeddings · generation", "pos": [1210, 150], "size": [190, 64] },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "vector index · retrieval", "pos": [1210, 490], "size": [190, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "1 · CLIENT LAYER", "wraps": ["user", "next"] },
+    { "kind": "region", "label": "2 · APPLICATION LAYER", "wraps": ["fastapi"] },
+    { "kind": "region", "label": "3 · RAG INTELLIGENCE LAYER", "wraps": ["rag"] },
+    { "kind": "region", "label": "4 · PERSISTENCE LAYER", "wraps": ["postgres", "sqlite"] },
+    { "kind": "region", "label": "5 · EXTERNAL SERVICES LAYER", "wraps": ["r2", "gemini", "pinecone"] }
+  ],
+  "connections": [
+    { "from": "user", "to": "next", "variant": "emphasis" },
+    { "from": "next", "to": "fastapi", "variant": "emphasis" },
+    { "from": "fastapi", "to": "rag", "variant": "emphasis" },
+    { "from": "rag", "to": "postgres", "variant": "default", "fromSide": "top", "toSide": "left" },
+    { "from": "rag", "to": "sqlite", "variant": "dashed", "fromSide": "bottom", "toSide": "left" },
+    { "from": "rag", "to": "r2", "variant": "default" },
+    { "from": "rag", "to": "gemini", "variant": "emphasis", "fromSide": "top", "toSide": "left" },
+    { "from": "rag", "to": "pinecone", "variant": "emphasis", "fromSide": "bottom", "toSide": "bottom", "via": [[810, 420], [810, 590], [1305, 590]] }
+  ],
+  "cards": []
+}

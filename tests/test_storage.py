@@ -4,7 +4,7 @@ import pytest
 
 from core.exceptions import InvalidMediaError, UnsupportedFileError
 from core.exceptions import FileTooLargeError
-from services.storage import file_type_for, safe_storage_path, sanitize_filename, save_upload_stream, sha256_for_path, stage_existing_file, storage_key_for_path, validate_signature
+from services.storage import file_type_for, sanitize_filename, save_upload_stream, sha256_for_path, stage_existing_file, validate_signature
 
 
 class UploadStub:
@@ -20,23 +20,15 @@ def test_sanitize_filename_and_extension():
     assert file_type_for("report.PDF") == "pdf"
 
 
-def test_storage_key_rejects_traversal(tmp_path: Path):
-    from core.config import Settings
-
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
-    with pytest.raises(InvalidMediaError):
-        safe_storage_path("uploads/../secret.txt", settings)
-
-
-def test_stage_hash_and_relative_key(tmp_path: Path):
+def test_stage_hash_is_in_temporary_processing_dir(tmp_path: Path):
     from core.config import Settings
 
     source = tmp_path / "hello.txt"
     source.write_text("hello", encoding="utf-8")
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    settings = Settings(temp_processing_dir=tmp_path / "processing")
     stored = stage_existing_file(source, settings)
     assert stored.sha256 == sha256_for_path(stored.path)
-    assert storage_key_for_path(stored.path, settings).startswith("uploads/")
+    assert stored.path.is_relative_to(settings.temp_processing_dir)
 
 
 def test_stage_invalid_file_leaves_no_permanent_artifact(tmp_path: Path):
@@ -44,10 +36,10 @@ def test_stage_invalid_file_leaves_no_permanent_artifact(tmp_path: Path):
 
     source = tmp_path / "bad.txt"
     source.write_bytes(b"\xff\xfe")
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    settings = Settings(temp_processing_dir=tmp_path / "processing")
     with pytest.raises(UnsupportedFileError):
         stage_existing_file(source, settings)
-    assert list(settings.uploads_dir.iterdir()) == []
+    assert not any(path.is_file() for path in settings.temp_processing_dir.rglob("*"))
 
 
 def test_binary_named_as_text_is_rejected(tmp_path: Path):
@@ -61,21 +53,21 @@ def test_binary_named_as_text_is_rejected(tmp_path: Path):
 async def test_invalid_upload_is_removed_before_promotion(tmp_path: Path):
     from core.config import Settings
 
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    settings = Settings(temp_processing_dir=tmp_path / "processing")
     with pytest.raises(UnsupportedFileError):
         await save_upload_stream(UploadStub([b"\xff\xfe"]), "bad.txt", settings)
-    assert list(settings.uploads_dir.glob(".*")) == []
-    assert list(settings.uploads_dir.glob("*")) == []
+    assert list(settings.temp_processing_dir.glob(".*")) == []
+    assert list(settings.temp_processing_dir.glob("*")) == []
 
 
 @pytest.mark.asyncio
 async def test_upload_above_limit_does_not_remain(tmp_path: Path):
     from core.config import Settings
 
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite", max_upload_size_mb=2, max_media_context_size_mb=1)
+    settings = Settings(temp_processing_dir=tmp_path / "processing", max_upload_size_mb=2, max_media_context_size_mb=1)
     with pytest.raises(FileTooLargeError):
         await save_upload_stream(UploadStub([b"x" * (2 * 1024 * 1024 + 1)]), "large.txt", settings)
-    assert list(settings.uploads_dir.glob("*")) == []
+    assert list(settings.temp_processing_dir.glob("*")) == []
 
 
 def test_signature_validation_does_not_use_read_bytes(tmp_path: Path, monkeypatch):
@@ -93,6 +85,19 @@ def test_valid_docx_package_is_accepted(tmp_path: Path):
         archive.writestr("[Content_Types].xml", "<Types />")
         archive.writestr("word/document.xml", "<document />")
     validate_signature(path, ".docx")
+
+
+def test_docx_entry_budget_is_enforced(tmp_path: Path):
+    from zipfile import ZipFile
+
+    path = tmp_path / "many-entries.docx"
+    with ZipFile(path, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        archive.writestr("word/document.xml", "<document />")
+        for index in range(2000):
+            archive.writestr(f"word/extra-{index}.xml", "<x />")
+    with pytest.raises(UnsupportedFileError, match="expans"):
+        validate_signature(path, ".docx")
 
 
 @pytest.mark.parametrize("payload", [b"PK\x03\x04", b"not a zip"])
@@ -119,11 +124,11 @@ def test_existing_valid_destination_is_reused(tmp_path: Path):
 
     source = tmp_path / "hello.txt"
     source.write_text("hello", encoding="utf-8")
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    settings = Settings(temp_processing_dir=tmp_path / "processing")
     first = stage_existing_file(source, settings)
     second = stage_existing_file(source, settings)
     assert second.path == first.path
-    assert list(settings.uploads_dir.glob(".*")) == []
+    assert list(settings.temp_processing_dir.glob(".*")) == []
 
 
 def test_corrupt_existing_destination_is_not_reused(tmp_path: Path):
@@ -131,13 +136,13 @@ def test_corrupt_existing_destination_is_not_reused(tmp_path: Path):
 
     source = tmp_path / "hello.txt"
     source.write_text("hello", encoding="utf-8")
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    settings = Settings(temp_processing_dir=tmp_path / "processing")
     stored = stage_existing_file(source, settings)
     stored.path.write_text("world", encoding="utf-8")
     with pytest.raises(InvalidMediaError):
         stage_existing_file(source, settings)
     assert stored.path.read_text(encoding="utf-8") == "world"
-    assert list(settings.uploads_dir.glob(".*")) == []
+    assert list(settings.temp_processing_dir.glob(".*")) == []
 
 
 def test_existing_directory_is_not_overwritten(tmp_path: Path):
@@ -145,11 +150,12 @@ def test_existing_directory_is_not_overwritten(tmp_path: Path):
 
     source = tmp_path / "hello.txt"
     source.write_text("hello", encoding="utf-8")
-    settings = Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    settings = Settings(temp_processing_dir=tmp_path / "processing")
     digest = sha256_for_path(source)
-    destination = settings.uploads_dir / f"{digest}_hello.txt"
+    destination = settings.temp_processing_dir / "inputs" / f"{digest}_hello.txt"
+    destination.parent.mkdir(parents=True)
     destination.mkdir()
     with pytest.raises(InvalidMediaError, match="não pôde ser validado"):
         stage_existing_file(source, settings)
     assert destination.is_dir()
-    assert list(settings.uploads_dir.glob(".*")) == []
+    assert list(settings.temp_processing_dir.glob(".*")) == []

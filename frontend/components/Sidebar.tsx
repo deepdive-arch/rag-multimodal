@@ -1,11 +1,11 @@
-import { ChevronDown, ChevronUp, FileArchive, FileAudio, FileImage, FileText, FileVideo, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronUp, FileArchive, FileAudio, FileImage, FileText, FileVideo } from "lucide-react"
 import Image from "next/image"
 import type { Ref } from "react"
 import { useState } from "react"
 import { FileFilters } from "@/components/FileFilters"
 import { UploadDropzone } from "@/components/UploadDropzone"
 import { sourceLimitLabel } from "@/lib/source-limit"
-import type { AnswerMode, FileType, IngestedFile, QueryFilters } from "@/types"
+import type { AnswerMode, FileType, IngestedFile, PublicDemoConfig, QueryFilters, UploadProgress } from "@/types"
 
 interface SidebarProps {
   isDrawerOpen?: boolean
@@ -15,14 +15,15 @@ interface SidebarProps {
   answerMode: AnswerMode
   isUploading: boolean
   uploadSummary: { success: number; errors: string[]; catalogError: string }
+  uploadStates: UploadProgress[]
+  publicDemo: PublicDemoConfig | null
   sidebarRef?: Ref<HTMLElement>
   onFiles: (files: File[]) => Promise<boolean>
+  onCancel: () => void
   onFilters: (filters: QueryFilters) => void
   onTopK: (value: number) => void
   onAnswerMode: (mode: AnswerMode) => void
-  onDelete: (file: IngestedFile) => void
   onClearChat: () => void
-  onClearIndex: () => void
 }
 
 function FileIcon({ type }: { type: FileType }) {
@@ -38,6 +39,9 @@ function formatSize(bytes: number) {
 }
 
 function statusLabel(status: IngestedFile["status"]) {
+  if (status === "pending_upload") return "Aguardando envio"
+  if (status === "uploaded") return "Validando"
+  if (status === "indexing") return "Indexando"
   if (status === "processing") return "Processando…"
   if (status === "failed") return "Falha"
   if (status === "deleting") return "Removendo…"
@@ -56,7 +60,7 @@ export function Sidebar({ sidebarRef, isDrawerOpen = false, ...props }: SidebarP
         </div>
       </header>
       <div className="sidebar-scroll-area">
-        <UploadDropzone isUploading={props.isUploading} uploadSummary={props.uploadSummary} onFiles={props.onFiles} />
+        <UploadDropzone isUploading={props.isUploading} uploadSummary={props.uploadSummary} uploadStates={props.uploadStates} publicDemo={props.publicDemo} onFiles={props.onFiles} onCancel={props.onCancel} />
         <section className="sidebar-section files-section" aria-labelledby="files-heading">
           <div className="section-heading">
             <p id="files-heading" className="section-kicker">Arquivos</p>
@@ -74,7 +78,6 @@ export function Sidebar({ sidebarRef, isDrawerOpen = false, ...props }: SidebarP
                     <span className={`file-state ${file.status === "ready" ? "ready" : file.status === "failed" ? "failed" : "processing"}`} role={file.status === "processing" ? "status" : undefined}>{statusLabel(file.status)}</span>
                   </span>
                 </button>
-                <button type="button" className="file-delete" aria-label={`Excluir ${file.name}`} onClick={() => props.onDelete(file)}><Trash2 aria-hidden="true" size={15} /></button>
               </div>
             })}
           </div>
@@ -108,7 +111,6 @@ export function Sidebar({ sidebarRef, isDrawerOpen = false, ...props }: SidebarP
       <footer className="sidebar-footer">
         <p className="section-kicker">Mais ações</p>
         <button type="button" className="secondary-button" onClick={props.onClearChat}>Limpar conversa</button>
-        <button type="button" className="danger-button" onClick={props.onClearIndex}>Limpar base</button>
       </footer>
     </aside>
   )

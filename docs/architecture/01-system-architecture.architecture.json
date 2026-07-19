@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RAG Multimodal — Arquitetura Geral",
+    "subtitle": "Runtime atual: Next.js → FastAPI → pipeline RAG; Postgres, R2, Gemini e Pinecone",
+    "output": "01-system-architecture.html",
+    "viewBox": [1420, 780]
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "User / Browser", "sublabel": "UI, SHA-256, upload PUT", "pos": [40, 330], "size": [150, 64] },
+    { "id": "next", "type": "frontend", "label": "Next.js Frontend", "sublabel": "React UI / fetch", "pos": [245, 330], "size": [170, 64] },
+    { "id": "fastapi", "type": "backend", "label": "FastAPI API", "sublabel": "REST + CORS + quotas", "pos": [475, 330], "size": [170, 64], "tag": "1 Uvicorn worker" },
+    { "id": "rag", "type": "backend", "label": "RAG Pipeline", "sublabel": "ingestion / retrieval / generation", "pos": [705, 330], "size": [190, 64] },
+    { "id": "temp", "type": "database", "label": "Ephemeral workspace", "sublabel": "/tmp/rag-processing", "pos": [705, 505], "size": [190, 64], "tag": "deleted after processing" },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "private originals + derived", "pos": [705, 120], "size": [190, 64], "tag": "presigned PUT / GET" },
+    { "id": "postgres", "type": "database", "label": "Postgres Catalog", "sublabel": "documents, chunks, objects, quotas", "pos": [1000, 120], "size": [220, 64], "tag": "Supabase-compatible" },
+    { "id": "gemini", "type": "cloud", "label": "Google Gemini", "sublabel": "text/media embeddings + answers", "pos": [1000, 330], "size": [220, 64] },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "dense vectors / namespace", "pos": [1000, 505], "size": [220, 64], "tag": "1536d cosine" },
+    { "id": "ops", "type": "security", "label": "Auxiliary controls", "sublabel": "cleanup, deletion, admin token", "pos": [475, 610], "size": [170, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "LOCAL APPLICATION RUNTIME", "wraps": ["browser", "next", "fastapi", "rag", "temp", "ops"] },
+    { "kind": "security-group", "label": "EXTERNAL PROVIDERS / MANAGED PERSISTENCE", "wraps": ["r2", "postgres", "gemini", "pinecone"] }
+  ],
+  "connections": [
+    { "from": "browser", "to": "next", "label": "render UI", "variant": "emphasis" },
+    { "from": "next", "to": "fastapi", "label": "REST /api/*", "variant": "emphasis" },
+    { "from": "browser", "to": "r2", "label": "presigned PUT", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[115, 290], [650, 290], [650, 152]], "labelAt": [370, 278] },
+    { "from": "fastapi", "to": "rag", "label": "orchestrate", "variant": "emphasis" },
+    { "from": "rag", "to": "temp", "label": "stage / download / dispose", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [800, 445] },
+    { "from": "rag", "to": "r2", "label": "HEAD / download / derived PUT", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [835, 227] },
+    { "from": "fastapi", "to": "postgres", "label": "catalog + quota", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[560, 285], [560, 90], [960, 90], [960, 152]], "labelAt": [745, 78] },
+    { "from": "rag", "to": "gemini", "label": "embed / generate", "variant": "emphasis" },
+    { "from": "rag", "to": "pinecone", "label": "upsert / query", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [925, 430] },
+    { "from": "ops", "to": "postgres", "label": "retention state", "variant": "security", "fromSide": "top", "toSide": "bottom", "via": [[560, 590], [560, 680], [1110, 680], [1110, 570], [1110, 184]], "labelAt": [820, 670] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Primary request path", "items": ["Browser usa Next.js para consultar FastAPI", "FastAPI coordena retrieval, contexto e geração", "A resposta retorna JSON com answer, fontes e estado de contexto"] },
+    { "dot": "emerald", "title": "Durable state", "items": ["R2 guarda originais e artefatos derivados", "Postgres guarda catálogo, chunks, objetos, quotas e feedback", "Pinecone guarda vetores no namespace configurado"] },
+    { "dot": "rose", "title": "Boundary note", "items": ["Gemini, Pinecone, R2 e Postgres são acessados por adapters no backend", "SQLite não aparece: o código atual exige PostgreSQL", "Segredos e X-Admin-Token permanecem no backend"] }
+  ]
+}

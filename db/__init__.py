@@ -1,1 +1,1 @@
-"""SQLite catalog package."""
+"""Postgres catalog package."""

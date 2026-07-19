@@ -8,7 +8,13 @@ from services import pinecone_service
 
 
 def make_settings(tmp_path, *, google_api_key="", pinecone_api_key="pinecone"):
-    return Settings(database_path=tmp_path / "rag.db", google_api_key=google_api_key, pinecone_api_key=pinecone_api_key, pinecone_index_name="rag")
+    return Settings(
+        _env_file=None,
+        database_url="postgresql+asyncpg://test:test@127.0.0.1:1/test",
+        google_api_key=google_api_key,
+        pinecone_api_key=pinecone_api_key,
+        pinecone_index_name="rag",
+    )
 
 
 @pytest.mark.parametrize(
@@ -23,8 +29,12 @@ def make_settings(tmp_path, *, google_api_key="", pinecone_api_key="pinecone"):
     ],
 )
 @pytest.mark.asyncio
-async def test_health_global_state(monkeypatch, tmp_path, google_api_key, pinecone_state, database_ready, expected_status):
-    settings = make_settings(tmp_path, google_api_key=google_api_key, pinecone_api_key="" if pinecone_state == "missing_key" else "pinecone")
+async def test_health_global_state(
+    monkeypatch, tmp_path, google_api_key, pinecone_state, database_ready, expected_status
+):
+    settings = make_settings(
+        tmp_path, google_api_key=google_api_key, pinecone_api_key="" if pinecone_state == "missing_key" else "pinecone"
+    )
 
     async def fake_is_ready(_catalog):
         return database_ready
@@ -33,11 +43,18 @@ async def test_health_global_state(monkeypatch, tmp_path, google_api_key, pineco
     monkeypatch.setattr("api.server.Catalog.is_ready", fake_is_ready)
     monkeypatch.setattr("api.server.index_health", lambda _settings: pinecone_state)
 
+    async def fake_r2_health(_settings):
+        return "ready"
+
+    monkeypatch.setattr("api.server._r2_health", fake_r2_health)
+
     result = await health()
 
     assert result.status == expected_status
     assert result.services.database == ("ok" if database_ready else "unavailable")
     assert result.services.google == ("configured" if google_api_key else "missing_key")
+    assert result.services.gemini == result.services.google
+    assert result.services.r2 == "ready"
     assert result.services.pinecone == pinecone_state
 
 
@@ -56,6 +73,11 @@ async def test_health_runs_pinecone_probe_in_worker(monkeypatch, tmp_path):
     monkeypatch.setattr("api.server.get_settings", lambda: settings)
     monkeypatch.setattr("api.server.Catalog.is_ready", fake_is_ready)
     monkeypatch.setattr("api.server.asyncio.to_thread", fake_to_thread)
+
+    async def fake_r2_health(_settings):
+        return "ready"
+
+    monkeypatch.setattr("api.server._r2_health", fake_r2_health)
 
     result = await health()
 
@@ -101,9 +123,19 @@ class FakeIndexManager:
     ("indexes", "description", "error", "expected"),
     [
         ([], None, None, "index_missing"),
-        ([SimpleNamespace(name="rag")], SimpleNamespace(dimension=512, metric="cosine", status=SimpleNamespace(ready=True)), None, "invalid_configuration"),
+        (
+            [SimpleNamespace(name="rag")],
+            SimpleNamespace(dimension=512, metric="cosine", status=SimpleNamespace(ready=True)),
+            None,
+            "invalid_configuration",
+        ),
         ([SimpleNamespace(name="rag")], None, RuntimeError("unauthorized"), "unavailable"),
-        ([SimpleNamespace(name="rag")], SimpleNamespace(dimension=1536, metric="cosine", status=SimpleNamespace(ready=True)), None, "ready"),
+        (
+            [SimpleNamespace(name="rag")],
+            SimpleNamespace(dimension=1536, metric="cosine", status=SimpleNamespace(ready=True)),
+            None,
+            "ready",
+        ),
     ],
 )
 def test_index_health_classifies_pinecone_states(monkeypatch, tmp_path, indexes, description, error, expected):

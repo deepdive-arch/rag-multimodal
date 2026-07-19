@@ -1,15 +1,17 @@
 from pathlib import Path
 
 import fitz
+import pytest
 from docx import Document
 from PIL import Image
 
 from core.config import Settings
 from services.media import extract_items
+from core.exceptions import InvalidMediaError
 
 
 def make_settings(tmp_path: Path) -> Settings:
-    return Settings(uploads_dir=tmp_path / "uploads", derived_dir=tmp_path / "derived", database_path=tmp_path / "db.sqlite")
+    return Settings(temp_processing_dir=tmp_path / "processing")
 
 
 def test_docx_paragraphs_and_tables(tmp_path: Path):
@@ -36,7 +38,7 @@ def test_scanned_pdf_persists_page_png(tmp_path: Path):
     document.close()
     items = extract_items(path, "doc", settings)
     assert items[0].content_modality == "image"
-    assert (settings.derived_dir / "doc" / "page-0001.png").exists()
+    assert (settings.temp_processing_dir / "doc" / "derived" / "page-0001.png").exists()
 
 
 def test_webp_is_normalized(tmp_path: Path):
@@ -46,3 +48,22 @@ def test_webp_is_normalized(tmp_path: Path):
     item = extract_items(path, "doc", settings)[0]
     assert item.mime_type == "image/jpeg"
     assert item.media_path and item.media_path.suffix == ".jpg"
+
+
+def test_image_pixel_budget_is_enforced(tmp_path: Path):
+    settings = make_settings(tmp_path).model_copy(update={"max_image_pixels": 10})
+    path = tmp_path / "large.png"
+    Image.new("RGB", (4, 4), "red").save(path, "PNG")
+    with pytest.raises(InvalidMediaError, match="pixels"):
+        extract_items(path, "doc", settings)
+
+
+def test_pdf_page_pixel_budget_is_enforced(tmp_path: Path):
+    settings = make_settings(tmp_path).model_copy(update={"max_pdf_page_pixels": 10})
+    path = tmp_path / "large-page.pdf"
+    document = fitz.open()
+    document.new_page()
+    document.save(path)
+    document.close()
+    with pytest.raises(InvalidMediaError, match="geometria"):
+        extract_items(path, "doc", settings)

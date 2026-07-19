@@ -108,11 +108,20 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 
 .upload-dropzone { flex: 0 0 auto; overflow: hidden; border: 1px dashed var(--border-strong); border-radius: var(--radius-xl); background: var(--surface-muted); transition: border-color 180ms ease-out, background-color 180ms ease-out, box-shadow 180ms ease-out; }
 .upload-dropzone.is-dragging { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface-muted)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 8%, transparent); }
+.public-demo-notice { border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--warning) 7%, transparent); color: var(--text-secondary); padding: 0.75rem 0.8rem; font-size: var(--font-size-meta); line-height: 1.45; }
+.public-demo-notice strong { color: var(--warning); }
+.public-demo-notice p { margin: 0.4rem 0 0; color: var(--text-muted); }
 .upload-button { display: flex; min-height: 7.2rem; width: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 0.45rem; border: 0; border-radius: var(--radius-lg); background: transparent; padding: 1rem; text-align: center; transition: background-color 180ms ease-out, color 180ms ease-out; }
 .upload-button:hover { background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
 .upload-button svg { color: var(--accent); }
 .upload-title { color: var(--text-primary); font-size: var(--font-size-upload); font-weight: 700; }
 .upload-help { color: var(--text-muted); font-size: var(--font-size-meta); line-height: 1.4; }
+.upload-cancel { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0 0.8rem 0.7rem; border: 0; background: transparent; color: var(--danger); padding: 0.2rem; font-size: var(--font-size-meta); font-weight: 700; }
+.upload-progress-list { display: grid; gap: 0.65rem; border-top: 1px solid var(--border); padding: 0.7rem 0.8rem; }
+.upload-progress-item { display: grid; gap: 0.3rem; min-width: 0; color: var(--text-secondary); font-size: var(--font-size-meta-tight); }
+.upload-progress-heading { display: flex; justify-content: space-between; gap: 0.6rem; }
+.upload-progress-name { min-width: 0; overflow: hidden; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; }
+.upload-progress-item progress { width: 100%; height: 0.35rem; accent-color: var(--accent); }
 .upload-feedback { display: grid; gap: 0.4rem; border-top: 1px solid var(--border); padding: 0.7rem 0.8rem 0.8rem; font-size: var(--font-size-meta); line-height: 1.45; }
 .upload-feedback p { display: flex; align-items: flex-start; gap: 0.35rem; margin: 0; }
 .feedback-success { color: var(--success); }

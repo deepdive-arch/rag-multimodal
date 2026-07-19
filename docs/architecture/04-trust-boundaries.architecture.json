@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RAG Multimodal — Trust Boundaries e Dados",
+    "subtitle": "Identidade anônima, ownership por visitante e fronteiras entre runtime e provedores",
+    "output": "04-trust-boundaries.html",
+    "viewBox": [1460, 850]
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "Visitor", "sublabel": "cookie HttpOnly; sem IP", "pos": [50, 320], "size": [160, 64] },
+    { "id": "next", "type": "frontend", "label": "Next.js Frontend", "sublabel": "no provider secrets", "pos": [270, 320], "size": [180, 64] },
+    { "id": "fastapi", "type": "backend", "label": "FastAPI", "sublabel": "identity + ownership validation", "pos": [510, 320], "size": [180, 64] },
+    { "id": "services", "type": "backend", "label": "Internal services", "sublabel": "storage / media / RAG / abuse", "pos": [510, 500], "size": [180, 64] },
+    { "id": "temp", "type": "database", "label": "Temporary files", "sublabel": "/tmp/rag-processing", "pos": [760, 500], "size": [180, 64], "tag": "ephemeral" },
+    { "id": "postgres", "type": "database", "label": "Postgres", "sublabel": "visitor-scoped catalog + feedback", "pos": [760, 120], "size": [190, 64] },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "private original / derived objects", "pos": [1040, 120], "size": [210, 64] },
+    { "id": "gemini", "type": "cloud", "label": "Google Gemini", "sublabel": "embeddings + generation", "pos": [1040, 320], "size": [210, 64] },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "visitor namespace + filter", "pos": [1040, 500], "size": [210, 64] },
+    { "id": "secrets", "type": "security", "label": "Server-only secrets", "sublabel": "API keys, R2 keys, admin token", "pos": [270, 610], "size": [180, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "LOCAL APPLICATION BOUNDARY", "wraps": ["browser", "next", "fastapi", "services", "temp", "secrets"] },
+    { "kind": "security-group", "label": "EXTERNAL PROVIDER BOUNDARY", "wraps": ["postgres", "r2", "gemini", "pinecone"] }
+  ],
+  "connections": [
+    { "from": "browser", "to": "next", "label": "UI state", "variant": "emphasis" },
+    { "from": "next", "to": "fastapi", "label": "HTTPS JSON /api/*", "variant": "emphasis", "labelAt": [480, 316] },
+    { "from": "browser", "to": "r2", "label": "presigned PUT: file bytes", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[130, 280], [1000, 280], [1000, 152]], "labelAt": [555, 268] },
+    { "from": "fastapi", "to": "services", "label": "validated commands", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [600, 430] },
+    { "from": "services", "to": "temp", "label": "downloaded bytes / derived files", "variant": "dashed", "labelAt": [725, 578] },
+    { "from": "services", "to": "postgres", "label": "SQL: document state + quota", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[600, 470], [600, 90], [720, 90], [720, 152]], "labelAt": [650, 78] },
+    { "from": "services", "to": "r2", "label": "S3 API: HEAD / GET / PUT", "variant": "security", "fromSide": "top", "toSide": "bottom", "via": [[690, 470], [690, 70], [1145, 70], [1145, 152]], "labelAt": [920, 58] },
+    { "from": "services", "to": "gemini", "label": "embedding vectors / prompt + media", "variant": "emphasis" },
+    { "from": "services", "to": "pinecone", "label": "upsert / query / delete vectors", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[710, 532], [980, 532], [980, 532]], "labelAt": [830, 578] },
+    { "from": "secrets", "to": "fastapi", "label": "backend-only configuration", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [480, 578] },
+    { "from": "postgres", "to": "fastapi", "label": "catalog records / valid refs", "variant": "dashed", "fromSide": "left", "toSide": "top", "via": [[720, 152], [720, 80], [600, 80], [600, 288]], "labelAt": [660, 68] },
+    { "from": "gemini", "to": "fastapi", "label": "embeddings / grounded answer", "variant": "dashed", "fromSide": "left", "toSide": "top", "via": [[1040, 352], [970, 352], [970, 250], [600, 250], [600, 288]], "labelAt": [820, 238] },
+    { "from": "pinecone", "to": "fastapi", "label": "matches + metadata", "variant": "dashed", "fromSide": "left", "toSide": "bottom", "via": [[1040, 532], [970, 532], [970, 720], [600, 720], [600, 352]], "labelAt": [820, 708] },
+    { "from": "r2", "to": "browser", "label": "short-lived GET URL for media source", "variant": "dashed", "fromSide": "left", "toSide": "top", "via": [[1040, 152], [990, 152], [990, 760], [130, 760], [130, 384]], "labelAt": [560, 748] }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Visitor-scoped data", "items": ["Visitor identity is persistent in a signed cookie and is not derived from IP", "R2 objects, Postgres rows and conversation history carry the resolved visitor owner", "Pinecone uses a backend-derived visitor namespace plus an exact ownership filter"] },
+    { "dot": "amber", "title": "Local-only handling", "items": ["Browser and Next.js never receive provider credentials", "FastAPI/services validate MIME, signature, hash, quotas and admin controls", "Temporary files exist only during processing or media-context download and are removed"] },
+    { "dot": "cyan", "title": "Response and feedback", "items": ["FastAPI persists a generated response before returning response_id", "Feedback accepts only response_id and useful", "The backend validates response ownership before recording feedback"] }
+  ]
+}

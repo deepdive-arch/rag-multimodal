@@ -8,17 +8,35 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from services.ingestion import ingest_file  # noqa: E402
+from services.ingestion import ingest_file, retry_document  # noqa: E402
 from services.storage import SUPPORTED_EXTENSIONS  # noqa: E402
 
 
 def main() -> None:
     """Ingest one file or every supported file under a directory."""
     parser = argparse.ArgumentParser(description="Ingest files into the multimodal RAG index")
-    parser.add_argument("path", type=Path)
-    parser.add_argument("--force", action="store_true")
+    parser.add_argument("path", type=Path, nargs="?")
+    parser.add_argument(
+        "--force", action="store_true", help="reprocessar explicitamente um documento failed com o mesmo SHA-256"
+    )
+    parser.add_argument("--retry-doc-id", help="reprocessar explicitamente um doc_id failed armazenado no Postgres")
     args = parser.parse_args()
-    paths = [args.path] if args.path.is_file() else sorted(item for item in args.path.rglob("*") if item.is_file() and item.suffix.lower() in SUPPORTED_EXTENSIONS)
+    if args.retry_doc_id:
+        result = retry_document(args.retry_doc_id)
+        if result:
+            print(f"[retry] {result.name}: {result.chunks} chunks")
+        else:
+            print("[retry] nenhum job iniciado; verifique o status do documento")
+        return
+    if not args.path:
+        parser.error("informe um caminho ou --retry-doc-id")
+    paths = (
+        [args.path]
+        if args.path.is_file()
+        else sorted(
+            item for item in args.path.rglob("*") if item.is_file() and item.suffix.lower() in SUPPORTED_EXTENSIONS
+        )
+    )
     print(f"Arquivos encontrados: {len(paths)}")
     for path in paths:
         try:
