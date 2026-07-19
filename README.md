@@ -37,35 +37,29 @@ Os diagramas abaixo foram gerados a partir da implementação real deste reposit
 
 ### Arquitetura do sistema
 
-![Arquitetura geral do sistema](docs/architecture/01-system-architecture.png)
-
-- [Abrir diagrama interativo da arquitetura geral](docs/architecture/01-system-architecture.html)
-- [Abrir a especificação Archify](docs/architecture/01-system-architecture.architecture.json)
+- [Abrir diagrama interativo da arquitetura geral](docs/runtime-architecture.html)
+- [Abrir a especificação Archify](docs/runtime-architecture.architecture.json)
 
 ### Pipeline de ingestão multimodal
 
-![Pipeline de ingestão multimodal](docs/architecture/02-multimodal-ingestion.png)
-
-- [Abrir diagrama interativo do pipeline de ingestão](docs/architecture/02-multimodal-ingestion.html)
-- [Abrir a especificação Archify](docs/architecture/02-multimodal-ingestion.dataflow.json)
+- [Abrir diagrama interativo do pipeline de ingestão](docs/data-flow.html)
+- [Abrir a especificação Archify](docs/data-flow.dataflow.json)
 
 O upload segue a sequência `presign → PUT direto no R2 → complete → download temporário → extração/normalização → embeddings → Pinecone → catálogo Postgres em estado ready`. O filesystem local não é uma camada de persistência.
 
 ### Fluxo de consulta RAG
 
-![Fluxo de consulta RAG](docs/architecture/03-rag-query.png)
-
-- [Abrir diagrama interativo do fluxo de consulta](docs/architecture/03-rag-query.html)
-- [Abrir a especificação Archify](docs/architecture/03-rag-query.sequence.json)
+- [Abrir diagrama interativo do fluxo de consulta](docs/query-sequence.html)
+- [Abrir a especificação Archify](docs/query-sequence.sequence.json)
 
 ### Trust boundaries
 
-![Trust boundaries e dados](docs/architecture/04-trust-boundaries.png)
-
-- [Abrir diagrama interativo de trust boundaries](docs/architecture/04-trust-boundaries.html)
-- [Abrir a especificação Archify](docs/architecture/04-trust-boundaries.architecture.json)
+- [Abrir diagrama interativo de trust boundaries](docs/visitor-isolation.html)
+- [Abrir a especificação Archify](docs/visitor-isolation.architecture.json)
 
 O diagrama deixa explícito que chaves de API, credenciais do R2 e `ADMIN_TOKEN` permanecem no backend. O navegador recebe apenas contratos públicos e URLs pré-assinadas de curta duração. A fronteira de persistência usa PostgreSQL; SQLite não faz parte do runtime atual.
+
+SQLite e `.tmp/uploads` aparecem somente na ferramenta opt-in `tools/migrate_local_persistence.py`, como origem legada read-only; não são um caminho de dados do runtime.
 
 ### Arquitetura de segurança: isolamento por visitante anônimo
 

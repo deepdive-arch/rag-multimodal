@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "RAG Multimodal — Sequência de consulta",
+    "subtitle": "Identidade anônima, retrieval filtrado, Gemini e feedback opcional",
+    "output": "query-sequence.html",
+    "viewBox": [920, 1120]
+  },
+  "participants": [
+    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "credentials: include" },
+    { "id": "next", "type": "frontend", "label": "Next.js", "sublabel": "queryRag()" },
+    { "id": "api", "type": "backend", "label": "FastAPI", "sublabel": "middleware + /api/query" },
+    { "id": "postgres", "type": "database", "label": "Postgres", "sublabel": "owner + persistence" },
+    { "id": "gemini", "type": "cloud", "label": "Gemini", "sublabel": "embed + generate" },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "visitor namespace" },
+    { "id": "r2", "type": "cloud", "label": "R2", "sublabel": "optional media context" }
+  ],
+  "segments": [
+    { "from": 160, "to": 330, "label": "01 · IDENTITY + PRECHECK" },
+    { "from": 340, "to": 650, "label": "02 · RETRIEVAL" },
+    { "from": 660, "to": 930, "label": "03 · GENERATION + FEEDBACK" }
+  ],
+  "messages": [
+    { "from": "browser", "to": "next", "y": 180, "label": "submit question", "variant": "emphasis" },
+    { "from": "next", "to": "api", "y": 215, "label": "POST /api/query + cookie", "variant": "emphasis" },
+    { "from": "next", "to": "api", "y": 250, "label": "middleware resolves HMAC visitor", "variant": "security", "note": "invalid cookie → new UUIDv4" },
+    { "from": "api", "to": "postgres", "y": 285, "label": "validate conversation owner", "variant": "security" },
+    { "from": "postgres", "to": "api", "y": 320, "label": "conversation / quota ok", "variant": "return" },
+    { "from": "api", "to": "gemini", "y": 365, "label": "embed query text", "variant": "emphasis" },
+    { "from": "gemini", "to": "api", "y": 400, "label": "1536d query vector", "variant": "return" },
+    { "from": "api", "to": "pinecone", "y": 445, "label": "query namespace + owner filter", "variant": "security" },
+    { "from": "pinecone", "to": "api", "y": 480, "label": "candidate matches", "variant": "return" },
+    { "from": "api", "to": "postgres", "y": 525, "label": "validate ready chunks + objects", "variant": "security" },
+    { "from": "postgres", "to": "api", "y": 560, "label": "owned sources", "variant": "return" },
+    { "from": "api", "to": "r2", "y": 605, "label": "download allowed media", "variant": "security", "note": "only when source has managed object key" },
+    { "from": "r2", "to": "api", "y": 640, "label": "temporary media bytes", "variant": "return" },
+    { "from": "api", "to": "gemini", "y": 695, "label": "grounded prompt + sources", "variant": "emphasis" },
+    { "from": "gemini", "to": "api", "y": 740, "label": "answer + used chunk ids", "variant": "return" },
+    { "from": "api", "to": "postgres", "y": 785, "label": "persist message + source snapshot", "variant": "security" },
+    { "from": "postgres", "to": "api", "y": 820, "label": "response_id", "variant": "return" },
+    { "from": "api", "to": "next", "y": 830, "label": "200 answer + sources", "variant": "return" },
+    { "from": "next", "to": "browser", "y": 865, "label": "render response", "variant": "return" },
+    { "from": "browser", "to": "next", "y": 900, "label": "click useful / not useful", "variant": "dashed" },
+    { "from": "next", "to": "api", "y": 940, "label": "POST /api/feedback", "variant": "security" },
+    { "from": "api", "to": "postgres", "y": 980, "label": "lookup response + upsert feedback", "variant": "security" }
+  ],
+  "activations": [
+    { "participant": "api", "from": 215, "to": 865, "type": "backend" },
+    { "participant": "postgres", "from": 285, "to": 820, "type": "database" },
+    { "participant": "gemini", "from": 365, "to": 740, "type": "cloud" },
+    { "participant": "pinecone", "from": 445, "to": 480, "type": "cloud" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Ownership is server-resolved", "items": ["The client sends no visitor_id, namespace or object key as authority", "Every private API response is marked private, no-store", "Feedback payload contains only response_id and useful"] },
+    { "dot": "emerald", "title": "Failure semantics", "items": ["A response is returned only after Postgres persistence", "Pinecone matches are rejected if the chunk is not ready/owned", "Gemini MAX_TOKENS is treated as an incomplete response"] }
+  ]
+}

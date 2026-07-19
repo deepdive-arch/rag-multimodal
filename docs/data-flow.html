@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.11.0">
-  <title>RAG Multimodal — Runtime atual Diagram</title>
+  <title>RAG Multimodal — Fluxo de dados Diagram</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -525,14 +525,14 @@
     <div class="header">
       <div class="header-row">
         <div class="pulse-dot"></div>
-        <h1>RAG Multimodal — Runtime atual</h1>
+        <h1>RAG Multimodal — Fluxo de dados</h1>
       </div>
-      <p class="subtitle">Next.js + FastAPI; Postgres, R2, Pinecone e Gemini com isolamento por visitante</p>
+      <p class="subtitle">Upload direto ao R2, ingestão efêmera, indexação e consulta fundamentada</p>
     </div>
 
     <!-- Main Diagram -->
     <div class="diagram-container">
-      <svg viewBox="0 0 1560 920" role="img" aria-label="RAG Multimodal — Runtime atual — Next.js + FastAPI; Postgres, R2, Pinecone e Gemini com isolamento por visitante (architecture diagram)">
+      <svg viewBox="0 0 1190 780" role="img" aria-label="RAG Multimodal — Fluxo de dados — Upload direto ao R2, ingestão efêmera, indexação e consulta fundamentada (data-flow diagram)">
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -555,140 +555,176 @@
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Boundaries (behind everything) -->
-        <rect x="215" y="325" width="750" height="449" rx="12" class="c-region" stroke-width="1"/>
-        <text x="223" y="343" class="t-cloud" font-size="9" font-weight="600">APPLICATION RUNTIME</text>
+        <!-- Data Stages -->
+        <rect x="16" y="46" width="168" height="660" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="100" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">01 / Entrada</text>
 
-        <rect x="1020" y="90" width="280" height="654" rx="8" class="c-security-group" stroke-width="1"/>
-        <text x="1028" y="108" class="t-security" font-size="9" font-weight="600">MANAGED EXTERNAL SERVICES</text>
+        <rect x="231" y="46" width="168" height="660" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="315" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">02 / Ingestão</text>
 
-        <rect x="10" y="715" width="555" height="159" rx="12" class="c-region" stroke-width="1"/>
-        <text x="18" y="733" class="t-cloud" font-size="9" font-weight="600">OPTIONAL LEGACY MIGRATION — NOT A RUNTIME DATA PATH</text>
+        <rect x="446" y="46" width="168" height="660" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="530" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">03 / Persistência</text>
 
-        <!-- Connection paths (before components for correct z-order) -->
-        <path d="M 190 387 L 245 387" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 425 387 L 485 387" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 115 355 L 115 328 Q 115 320 123 320 L 972 320 Q 980 320 980 312 L 980 160 Q 980 152 988 152 L 1050 152" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 665 387 L 725 387" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 830 419 L 830 525" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 830 355 L 987 355 Q 995 355 995 347 L 995 192 Q 995 184 1003 184 L 1160 184" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 575 355 L 575 347.5 Q 575 340 575 332.5 L 575 268 Q 575 260 583 260 L 1002 260 Q 1010 260 1010 268 L 1010 324 Q 1010 332 1018 332 L 1050 332" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 935 387 L 984.5 387 Q 992.5 387 992.5 395 L 992.5 504 Q 992.5 512 1000.5 512 L 1050 512" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 935 387 L 942.5 387 Q 950 387 957.5 387 L 992 387 Q 1000 387 1000 395 L 1000 684 Q 1000 692 1008 692 L 1050 692" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 590 690 L 586.25 690 Q 582.5 690 582.5 686.25 L 582.5 422.75 Q 582.5 419 578.75 419 L 575 419" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 270 777 L 289.5 777 Q 297.5 777 297.5 785 L 297.5 814 Q 297.5 822 305.5 822 L 325 822" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 155 745 L 155 728 Q 155 720 155 728 L 155 857 Q 155 865 163 865 L 1152 865 Q 1160 865 1160 857 L 1160 364 L 1160 364" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 155 745 L 193.0067417910277 723.885143449429 Q 200 720 200 712 L 200 98 Q 200 90 208 90 L 1152 90 Q 1160 90 1160 98 L 1160 144 Q 1160 152 1160 160 L 1160 184" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <rect x="661" y="46" width="168" height="660" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="745" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">04 / Recuperação</text>
 
-        <!-- Components -->
-        <rect x="40" y="355" width="150" height="64" rx="6" class="c-mask"/>
-        <rect x="40" y="355" width="150" height="64" rx="6" class="c-external" stroke-width="1.5"/>
-        <text x="115" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Browser</text>
-        <text x="115" y="401" class="t-muted" font-size="9" text-anchor="middle">UI, SHA-256, PUT direto</text>
+        <rect x="876" y="46" width="168" height="660" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="960" y="68" class="t-dim" font-size="9" font-weight="600" text-anchor="middle">05 / Resposta</text>
 
-        <rect x="245" y="355" width="180" height="64" rx="6" class="c-mask"/>
-        <rect x="245" y="355" width="180" height="64" rx="6" class="c-frontend" stroke-width="1.5"/>
-        <text x="335" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Next.js frontend</text>
-        <text x="335" y="401" class="t-muted" font-size="9" text-anchor="middle">React / fetch / credentials</text>
+        <!-- Flow paths -->
+        <path d="M 100 186 L 100 186 L 100 356 L 100 356" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path d="M 156 157 L 310 157 L 310 157 L 259 157" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 156 385 L 207.5 385 L 207.5 157 L 259 157" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path d="M 315 186 L 315 186 L 315 356 L 315 356" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 315 414 L 315 414 L 315 584 L 315 584" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 371 613 L 422.5 613 L 422.5 157 L 474 157" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 371 613 L 474 613" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 156 385 L 520 385 L 520 385 L 474 385" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path d="M 586 613 L 637.5 613 L 637.5 385 L 689 385" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 371 613 L 371 332 L 474 332 L 474 385" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path d="M 156 157 L 156 700 L 689 700 L 689 613" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path d="M 745 584 L 745 332 L 745 332 L 745 414" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 745 414 L 820 414 L 820 584 L 745 584" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 689 613 L 689 332 L 586 332 L 586 385" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path d="M 801 613 L 852.5 613 L 852.5 271 L 904 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 960 300 L 960 300 L 960 470 L 960 470" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 904 499 L 904 554 L 586 554 L 586 385" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path d="M 960 528 L 960 528 L 960 584 L 960 584" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
 
-        <rect x="485" y="355" width="180" height="64" rx="6" class="c-mask"/>
-        <rect x="485" y="355" width="180" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="575" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">FastAPI</text>
-        <text x="575" y="401" class="t-muted" font-size="9" text-anchor="middle">REST / CORS / middleware</text>
-        <text x="575" y="411" class="t-backend" font-size="7" text-anchor="middle">Uvicorn 1 worker</text>
+        <!-- Nodes -->
+        <rect x="44" y="128" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="44" y="128" width="112" height="58" rx="6" class="c-external" stroke-width="1.5"/>
+        <text x="100" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Browser</text>
+        <text x="100" y="165" class="t-muted" font-size="7" text-anchor="middle">SHA-256 + PUT</text>
+        <text x="100" y="175" class="t-external" font-size="7" text-anchor="middle">visitor cookie</text>
 
-        <rect x="725" y="355" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="725" y="355" width="210" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="830" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RAG services</text>
-        <text x="830" y="401" class="t-muted" font-size="9" text-anchor="middle">ingestion / retrieval / generation</text>
+        <rect x="44" y="356" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="44" y="356" width="112" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="100" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">FastAPI upload</text>
+        <text x="100" y="393" class="t-muted" font-size="7" text-anchor="middle">presign / complete</text>
 
-        <rect x="725" y="525" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="725" y="525" width="210" height="64" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="830" y="555" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ephemeral workspace</text>
-        <text x="830" y="571" class="t-muted" font-size="9" text-anchor="middle">.tmp/processing; disposable</text>
-        <text x="830" y="581" class="t-database" font-size="7" text-anchor="middle">not durable</text>
+        <rect x="259" y="128" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="259" y="128" width="112" height="58" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="315" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">R2 original</text>
+        <text x="315" y="165" class="t-muted" font-size="7" text-anchor="middle">private object</text>
 
-        <rect x="1050" y="120" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="120" width="220" height="64" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="1160" y="150" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Cloudflare R2</text>
-        <text x="1160" y="166" class="t-muted" font-size="9" text-anchor="middle">private originals + derived</text>
-        <text x="1160" y="176" class="t-cloud" font-size="7" text-anchor="middle">S3 API / presigned PUT</text>
+        <rect x="259" y="356" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="259" y="356" width="112" height="58" rx="6" class="c-database" stroke-width="1.5"/>
+        <text x="315" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Temporary workspace</text>
+        <text x="315" y="393" class="t-muted" font-size="7" text-anchor="middle">download + validation</text>
+        <text x="315" y="403" class="t-database" font-size="7" text-anchor="middle">deleted in finally</text>
 
-        <rect x="1050" y="300" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="300" width="220" height="64" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="1160" y="330" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Supabase Postgres</text>
-        <text x="1160" y="346" class="t-muted" font-size="9" text-anchor="middle">catalog / quotas / conversations</text>
-        <text x="1160" y="356" class="t-database" font-size="7" text-anchor="middle">asyncpg + Alembic</text>
+        <rect x="259" y="584" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="259" y="584" width="112" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="315" y="605" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Extract + normalize</text>
+        <text x="315" y="621" class="t-muted" font-size="7" text-anchor="middle">text / PDF / media</text>
 
-        <rect x="1050" y="480" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="480" width="220" height="64" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="1160" y="510" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Pinecone</text>
-        <text x="1160" y="526" class="t-muted" font-size="9" text-anchor="middle">1536d dense vectors / visitor namespace</text>
+        <rect x="474" y="128" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="474" y="128" width="112" height="58" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="530" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">R2 derived</text>
+        <text x="530" y="165" class="t-muted" font-size="7" text-anchor="middle">rendered / normalized</text>
 
-        <rect x="1050" y="660" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="660" width="220" height="64" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="1160" y="690" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Google Gemini</text>
-        <text x="1160" y="706" class="t-muted" font-size="9" text-anchor="middle">multimodal embeddings + answer</text>
+        <rect x="474" y="356" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="474" y="356" width="112" height="58" rx="6" class="c-database" stroke-width="1.5"/>
+        <text x="530" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Postgres catalog</text>
+        <text x="530" y="393" class="t-muted" font-size="7" text-anchor="middle">docs / objects / chunks</text>
 
-        <rect x="485" y="690" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="485" y="690" width="210" height="64" rx="6" class="c-security" stroke-width="1.5"/>
-        <text x="590" y="720" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Backend-only secrets</text>
-        <text x="590" y="736" class="t-muted" font-size="9" text-anchor="middle">Gemini / Pinecone / R2 / ADMIN_TOKEN</text>
+        <rect x="474" y="584" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="474" y="584" width="112" height="58" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="530" y="605" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Gemini embeddings</text>
+        <text x="530" y="621" class="t-muted" font-size="7" text-anchor="middle">1536 dimensions</text>
 
-        <rect x="40" y="745" width="230" height="64" rx="6" class="c-mask"/>
-        <rect x="40" y="745" width="230" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="155" y="775" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Legacy migration tool</text>
-        <text x="155" y="791" class="t-muted" font-size="9" text-anchor="middle">tools/migrate_local_persistence.py</text>
-        <text x="155" y="801" class="t-backend" font-size="7" text-anchor="middle">opt-in; excluded from runtime</text>
+        <rect x="689" y="356" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="689" y="356" width="112" height="58" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="745" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Pinecone</text>
+        <text x="745" y="393" class="t-muted" font-size="7" text-anchor="middle">visitor namespace</text>
 
-        <rect x="325" y="790" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="325" y="790" width="210" height="64" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="430" y="820" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">SQLite + local uploads</text>
-        <text x="430" y="836" class="t-muted" font-size="9" text-anchor="middle">.tmp/rag.db / .tmp/uploads</text>
-        <text x="430" y="846" class="t-database" font-size="7" text-anchor="middle">legacy read-only source</text>
+        <rect x="689" y="584" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="689" y="584" width="112" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="745" y="605" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">RAG retrieval</text>
+        <text x="745" y="621" class="t-muted" font-size="7" text-anchor="middle">filter + ready check</text>
 
-        <!-- Connection labels -->
-        <rect x="172.2" y="341" width="91.6" height="14" rx="3" class="c-mask"/>
-        <text x="218" y="351" class="t-backend" font-size="8" text-anchor="middle">render / interact</text>
-        <rect x="402" y="341" width="106" height="14" rx="3" class="c-mask"/>
-        <text x="455" y="351" class="t-backend" font-size="8" text-anchor="middle">REST /api/* + cookie</text>
-        <rect x="503.8" y="295" width="72.4" height="14" rx="3" class="c-mask"/>
-        <text x="540" y="305" class="t-security" font-size="8" text-anchor="middle">presigned PUT</text>
-        <rect x="663.6" y="367" width="62.8" height="14" rx="3" class="c-mask"/>
-        <text x="695" y="377" class="t-backend" font-size="8" text-anchor="middle">orchestrate</text>
-        <rect x="762.6" y="470" width="134.8" height="14" rx="3" class="c-mask"/>
-        <text x="830" y="480" class="t-messagebus" font-size="8" text-anchor="middle">stage / download / dispose</text>
-        <rect x="905.4" y="255" width="149.2" height="14" rx="3" class="c-mask"/>
-        <text x="980" y="265" class="t-security" font-size="8" text-anchor="middle">HEAD / download / derived PUT</text>
-        <rect x="739" y="235" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="780" y="245" class="t-security" font-size="8" text-anchor="middle">catalog + quota</text>
-        <rect x="953.9" y="429.5" width="77.2" height="14" rx="3" class="c-mask"/>
-        <text x="992.5" y="439.5" class="t-backend" font-size="8" text-anchor="middle">upsert / query</text>
-        <rect x="921.6" y="593" width="86.8" height="14" rx="3" class="c-mask"/>
-        <text x="965" y="603" class="t-backend" font-size="8" text-anchor="middle">embed / generate</text>
-        <rect x="539.4" y="630" width="101.2" height="14" rx="3" class="c-mask"/>
-        <text x="590" y="640" class="t-security" font-size="8" text-anchor="middle">process environment</text>
-        <rect x="254.6" y="858" width="86.8" height="14" rx="3" class="c-mask"/>
-        <text x="298" y="868" class="t-messagebus" font-size="8" text-anchor="middle">read-only source</text>
-        <rect x="609" y="840" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="650" y="850" class="t-messagebus" font-size="8" text-anchor="middle">migrate catalog</text>
-        <rect x="609" y="65" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="650" y="75" class="t-messagebus" font-size="8" text-anchor="middle">migrate objects</text>
+        <rect x="904" y="242" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="904" y="242" width="112" height="58" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="960" y="263" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Gemini generation</text>
+        <text x="960" y="279" class="t-muted" font-size="7" text-anchor="middle">grounded answer</text>
+
+        <rect x="904" y="470" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="904" y="470" width="112" height="58" rx="6" class="c-frontend" stroke-width="1.5"/>
+        <text x="960" y="491" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Answer + sources</text>
+        <text x="960" y="507" class="t-muted" font-size="7" text-anchor="middle">persisted response_id</text>
+
+        <rect x="904" y="584" width="112" height="58" rx="6" class="c-mask"/>
+        <rect x="904" y="584" width="112" height="58" rx="6" class="c-security" stroke-width="1.5"/>
+        <text x="960" y="605" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Feedback</text>
+        <text x="960" y="621" class="t-muted" font-size="7" text-anchor="middle">visitor + message FK</text>
+
+        <!-- Flow labels -->
+        <rect x="57.25" y="250" width="85.5" height="27" rx="4" class="c-mask"/>
+        <text x="100" y="261" class="t-security" font-size="8" text-anchor="middle">upload metadata</text>
+        <text x="100" y="272" class="t-dim" font-size="7" text-anchor="middle">visitor-scoped</text>
+        <rect x="255" y="189" width="110" height="27" rx="4" class="c-mask"/>
+        <text x="310" y="200" class="t-backend" font-size="8" text-anchor="middle">original bytes</text>
+        <text x="310" y="211" class="t-dim" font-size="7" text-anchor="middle">presigned direct PUT</text>
+        <rect x="132.55" y="209" width="114.9" height="27" rx="4" class="c-mask"/>
+        <text x="190" y="220" class="t-security" font-size="8" text-anchor="middle">controlled object key</text>
+        <text x="190" y="231" class="t-dim" font-size="7" text-anchor="middle">private R2</text>
+        <rect x="245.3" y="250" width="139.4" height="27" rx="4" class="c-mask"/>
+        <text x="315" y="261" class="t-messagebus" font-size="8" text-anchor="middle">download + HEAD invariants</text>
+        <text x="315" y="272" class="t-dim" font-size="7" text-anchor="middle">temporary</text>
+        <rect x="274.7" y="478" width="80.60000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="315" y="489" class="t-backend" font-size="8" text-anchor="middle">validated file</text>
+        <text x="315" y="500" class="t-dim" font-size="7" text-anchor="middle">ephemeral</text>
+        <rect x="363.1" y="459" width="119.80000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="423" y="470" class="t-backend" font-size="8" text-anchor="middle">derived media</text>
+        <text x="423" y="481" class="t-dim" font-size="7" text-anchor="middle">durable private object</text>
+        <rect x="368" y="645" width="110" height="27" rx="4" class="c-mask"/>
+        <text x="423" y="656" class="t-backend" font-size="8" text-anchor="middle">text / media payload</text>
+        <text x="423" y="667" class="t-dim" font-size="7" text-anchor="middle">backend-only</text>
+        <rect x="460.1" y="417" width="119.80000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="520" y="428" class="t-security" font-size="8" text-anchor="middle">document state + quota</text>
+        <text x="520" y="439" class="t-dim" font-size="7" text-anchor="middle">visitor ownership</text>
+        <rect x="567.8" y="478" width="139.4" height="27" rx="4" class="c-mask"/>
+        <text x="637.5" y="489" class="t-backend" font-size="8" text-anchor="middle">vectors + metadata</text>
+        <text x="637.5" y="500" class="t-dim" font-size="7" text-anchor="middle">namespace + visitor filter</text>
+        <rect x="369.95" y="311" width="105.10000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="422.5" y="322" class="t-security" font-size="8" text-anchor="middle">object + chunk refs</text>
+        <text x="422.5" y="333" class="t-dim" font-size="7" text-anchor="middle">traceability</text>
+        <rect x="372.4" y="679" width="100.2" height="27" rx="4" class="c-mask"/>
+        <text x="422.5" y="690" class="t-security" font-size="8" text-anchor="middle">question + history</text>
+        <text x="422.5" y="701" class="t-dim" font-size="7" text-anchor="middle">visitor cookie</text>
+        <rect x="685.1" y="417" width="119.80000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="745" y="428" class="t-backend" font-size="8" text-anchor="middle">query vector</text>
+        <text x="745" y="439" class="t-dim" font-size="7" text-anchor="middle">same visitor namespace</text>
+        <rect x="772.35" y="478" width="95.30000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="820" y="489" class="t-messagebus" font-size="8" text-anchor="middle">candidate chunks</text>
+        <text x="820" y="500" class="t-dim" font-size="7" text-anchor="middle">metadata filtered</text>
+        <rect x="577.6" y="287" width="119.80000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="637.5" y="298" class="t-security" font-size="8" text-anchor="middle">ready chunk validation</text>
+        <text x="637.5" y="309" class="t-dim" font-size="7" text-anchor="middle">owner + status</text>
+        <rect x="809.75" y="421" width="85.5" height="27" rx="4" class="c-mask"/>
+        <text x="852.5" y="432" class="t-backend" font-size="8" text-anchor="middle">context + media</text>
+        <text x="852.5" y="443" class="t-dim" font-size="7" text-anchor="middle">grounded prompt</text>
+        <rect x="909.9" y="364" width="100.2" height="27" rx="4" class="c-mask"/>
+        <text x="960" y="375" class="t-backend" font-size="8" text-anchor="middle">answer + sources</text>
+        <text x="960" y="386" class="t-dim" font-size="7" text-anchor="middle">persisted response</text>
+        <rect x="677.75" y="533" width="134.5" height="27" rx="4" class="c-mask"/>
+        <text x="745" y="544" class="t-security" font-size="8" text-anchor="middle">message + source snapshot</text>
+        <text x="745" y="555" class="t-dim" font-size="7" text-anchor="middle">visitor-owned</text>
+        <rect x="900.1" y="535" width="119.80000000000001" height="27" rx="4" class="c-mask"/>
+        <text x="960" y="546" class="t-security" font-size="8" text-anchor="middle">useful boolean</text>
+        <text x="960" y="557" class="t-dim" font-size="7" text-anchor="middle">same visitor + message</text>
 
         <!-- Legend -->
-        <text x="40" y="891" class="t-primary" font-size="9" font-weight="600">Legend</text>
-        <rect x="40" y="896" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-        <text x="60" y="904" class="t-muted" font-size="8">External</text>
-        <rect x="138" y="896" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-        <text x="158" y="904" class="t-muted" font-size="8">Frontend</text>
-        <rect x="236" y="896" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-        <text x="256" y="904" class="t-muted" font-size="8">Backend</text>
-        <rect x="329" y="896" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-        <text x="349" y="904" class="t-muted" font-size="8">Database</text>
-        <rect x="427" y="896" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-        <text x="447" y="904" class="t-muted" font-size="8">Cloud</text>
-        <rect x="510" y="896" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
-        <text x="530" y="904" class="t-muted" font-size="8">Security</text>
+        <text x="214" y="724" class="t-primary" font-size="10" font-weight="600">Legend</text>
+        <path d="M 214 744 L 248 744" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <text x="257" y="747" class="t-muted" font-size="8">primary data</text>
+        <path d="M 340 744 L 374 744" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <text x="383" y="747" class="t-muted" font-size="8">policy / PII</text>
+        <path d="M 480 744 L 514 744" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <text x="523" y="747" class="t-muted" font-size="8">async batch</text>
+        <rect x="625" y="736" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+        <text x="646" y="744" class="t-muted" font-size="8">data store</text>
       </svg>
     </div>
 
@@ -696,44 +732,32 @@
     <div class="cards">
       <div class="card">
         <div class="card-header">
-          <div class="card-dot cyan"></div>
-          <h3>Primary runtime path</h3>
+          <div class="card-dot amber"></div>
+          <h3>Validation gates</h3>
         </div>
         <ul>
-          <li>&bull; Browser → Next.js → FastAPI</li>
-          <li>&bull; FastAPI coordinates ingestion, retrieval and generation</li>
-          <li>&bull; API responses are private and no-store</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>Durable state</h3>
-        </div>
-        <ul>
-          <li>&bull; R2 stores private originals and derived media</li>
-          <li>&bull; Postgres stores documents, objects, chunks, quotas, conversations, messages and feedback</li>
-          <li>&bull; Pinecone stores vectors in visitor-derived namespaces</li>
+          <li>&bull; Extension, MIME, size, SHA-256 and signature are checked</li>
+          <li>&bull; complete faz HEAD antes de iniciar processamento</li>
+          <li>&bull; Document only reaches ready after vectors and catalog refs succeed</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot rose"></div>
-          <h3>Trust boundaries</h3>
+          <h3>Data isolation</h3>
         </div>
         <ul>
-          <li>&bull; R2, Postgres, Pinecone and Gemini are backend integrations</li>
-          <li>&bull; The browser receives only public contracts and short-lived presigned URLs</li>
-          <li>&bull; SQLite exists only as an opt-in read-only migration source</li>
+          <li>&bull; R2 keys use visitor_&lt;uuidhex&gt;/documents/&lt;doc_id&gt;</li>
+          <li>&bull; Pinecone namespace and metadata filter both require the visitor</li>
+          <li>&bull; Postgres revalidates ready chunks and response ownership</li>
         </ul>
       </div>
     </div>
 
     <!-- Footer -->
     <p class="footer">
-      Architecture diagram &bull; Built with Archify<span class="no-print"> &bull; Press <kbd>T</kbd> for theme and <kbd>E</kbd> for export</span>
+      Data-flow diagram &bull; Built with Archify<span class="no-print"> &bull; Press <kbd>T</kbd> for theme and <kbd>E</kbd> for export</span>
     </p>
   </div>
 

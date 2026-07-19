@@ -2,39 +2,48 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "RAG Multimodal — Runtime Architecture",
-    "subtitle": "Consulta orquestrada pelo FastAPI; upload direto ao R2 e processamento efêmero",
-    "output": "runtime-architecture.html"
+    "title": "RAG Multimodal — Runtime atual",
+    "subtitle": "Next.js + FastAPI; Postgres, R2, Pinecone e Gemini com isolamento por visitante",
+    "output": "runtime-architecture.html",
+    "viewBox": [1560, 920]
   },
   "components": [
-    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "usuário / HTTPS", "pos": [40, 320], "size": [120, 60] },
-    { "id": "next", "type": "frontend", "label": "Next.js", "sublabel": "Static Site / Render", "pos": [220, 320], "size": [140, 60] },
-    { "id": "fastapi", "type": "backend", "label": "FastAPI", "sublabel": "REST + RAG orchestration", "pos": [430, 320], "size": [150, 60], "tag": "migrations + 1 worker" },
-    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "private bucket / presigned URLs", "pos": [430, 100], "size": [170, 60], "tag": "durable objects" },
-    { "id": "temp", "type": "database", "label": "Ephemeral workspace", "sublabel": "/tmp/rag-processing", "pos": [670, 320], "size": [170, 60], "tag": "never persistent" },
-    { "id": "postgres", "type": "database", "label": "Supabase Postgres", "sublabel": "catalog / quota / audit", "pos": [920, 100], "size": [180, 60], "tag": "Supavisor :5432" },
-    { "id": "gemini", "type": "cloud", "label": "Google Gemini", "sublabel": "embedding + generation", "pos": [920, 320], "size": [160, 60] },
-    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "dense 1536d / cosine", "pos": [1160, 320], "size": [170, 60], "tag": "production namespace" }
+    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "UI, SHA-256, PUT direto", "pos": [40, 355], "size": [150, 64] },
+    { "id": "next", "type": "frontend", "label": "Next.js frontend", "sublabel": "React / fetch / credentials", "pos": [245, 355], "size": [180, 64] },
+    { "id": "fastapi", "type": "backend", "label": "FastAPI", "sublabel": "REST / CORS / middleware", "pos": [485, 355], "size": [180, 64], "tag": "Uvicorn 1 worker" },
+    { "id": "pipelines", "type": "backend", "label": "RAG services", "sublabel": "ingestion / retrieval / generation", "pos": [725, 355], "size": [210, 64] },
+    { "id": "temp", "type": "database", "label": "Ephemeral workspace", "sublabel": ".tmp/processing; disposable", "pos": [725, 525], "size": [210, 64], "tag": "not durable" },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "private originals + derived", "pos": [1050, 120], "size": [220, 64], "tag": "S3 API / presigned PUT" },
+    { "id": "postgres", "type": "database", "label": "Supabase Postgres", "sublabel": "catalog / quotas / conversations", "pos": [1050, 300], "size": [220, 64], "tag": "asyncpg + Alembic" },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "1536d dense vectors / visitor namespace", "pos": [1050, 480], "size": [220, 64] },
+    { "id": "gemini", "type": "cloud", "label": "Google Gemini", "sublabel": "multimodal embeddings + answer", "pos": [1050, 660], "size": [220, 64] },
+    { "id": "secrets", "type": "security", "label": "Backend-only secrets", "sublabel": "Gemini / Pinecone / R2 / ADMIN_TOKEN", "pos": [485, 690], "size": [210, 64] },
+    { "id": "migration", "type": "backend", "label": "Legacy migration tool", "sublabel": "tools/migrate_local_persistence.py", "pos": [40, 745], "size": [230, 64], "tag": "opt-in; excluded from runtime" },
+    { "id": "sqlite", "type": "database", "label": "SQLite + local uploads", "sublabel": ".tmp/rag.db / .tmp/uploads", "pos": [325, 790], "size": [210, 64], "tag": "legacy read-only source" }
   ],
   "boundaries": [
-    { "kind": "region", "label": "Render runtime: Static Site + Web Service", "wraps": ["next", "fastapi", "temp"] },
-    { "kind": "security-group", "label": "Private object storage boundary", "wraps": ["r2"] },
-    { "kind": "security-group", "label": "Managed data and AI providers", "wraps": ["postgres", "gemini", "pinecone"] }
+    { "kind": "region", "label": "APPLICATION RUNTIME", "wraps": ["next", "fastapi", "pipelines", "temp", "secrets"] },
+    { "kind": "security-group", "label": "MANAGED EXTERNAL SERVICES", "wraps": ["r2", "postgres", "pinecone", "gemini"] },
+    { "kind": "region", "label": "OPTIONAL LEGACY MIGRATION — NOT A RUNTIME DATA PATH", "wraps": ["migration", "sqlite"] }
   ],
   "connections": [
-    { "from": "browser", "to": "next", "label": "HTTPS", "variant": "emphasis" },
-    { "from": "next", "to": "fastapi", "label": "REST /api/*", "variant": "emphasis", "labelDy": -24 },
-    { "from": "browser", "to": "r2", "label": "presigned PUT", "variant": "emphasis", "fromSide": "top", "toSide": "left", "via": [[100, 230], [380, 230], [380, 130]], "labelAt": [240, 224] },
-    { "from": "r2", "to": "fastapi", "label": "complete / HEAD / download", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [548, 236] },
-    { "from": "fastapi", "to": "temp", "label": "background processing", "variant": "dashed", "labelAt": [625, 394] },
-    { "from": "temp", "to": "gemini", "label": "media context", "variant": "dashed", "labelAt": [880, 394] },
-    { "from": "fastapi", "to": "gemini", "label": "embed / generate", "variant": "emphasis", "fromSide": "top", "toSide": "top", "via": [[505, 270], [1000, 270]], "labelAt": [750, 262] },
-    { "from": "fastapi", "to": "pinecone", "label": "query / upsert", "variant": "emphasis", "fromSide": "bottom", "toSide": "bottom", "via": [[505, 430], [1245, 430]], "labelAt": [850, 422] },
-    { "from": "fastapi", "to": "postgres", "label": "state + quota", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[610, 350], [610, 210], [860, 210], [860, 130]], "labelAt": [735, 204] }
+    { "from": "browser", "to": "next", "label": "render / interact", "variant": "emphasis", "labelAt": [218, 351] },
+    { "from": "next", "to": "fastapi", "label": "REST /api/* + cookie", "variant": "emphasis", "labelAt": [455, 351] },
+    { "from": "browser", "to": "r2", "label": "presigned PUT", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[115, 320], [980, 320], [980, 152]], "labelAt": [540, 305] },
+    { "from": "fastapi", "to": "pipelines", "label": "orchestrate", "variant": "emphasis" },
+    { "from": "pipelines", "to": "temp", "label": "stage / download / dispose", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [830, 480] },
+    { "from": "pipelines", "to": "r2", "label": "HEAD / download / derived PUT", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [980, 265] },
+    { "from": "fastapi", "to": "postgres", "label": "catalog + quota", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[575, 340], [575, 260], [1010, 260], [1010, 332]], "labelAt": [780, 245] },
+    { "from": "pipelines", "to": "pinecone", "label": "upsert / query", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "from": "pipelines", "to": "gemini", "label": "embed / generate", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[950, 387], [1000, 387], [1000, 692]], "labelAt": [965, 603] },
+    { "from": "secrets", "to": "fastapi", "label": "process environment", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [590, 640] },
+    { "from": "migration", "to": "sqlite", "label": "read-only source", "variant": "dashed", "labelAt": [298, 868] },
+    { "from": "migration", "to": "postgres", "label": "migrate catalog", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "via": [[155, 720], [155, 865], [1160, 865], [1160, 364]], "labelAt": [650, 850] },
+    { "from": "migration", "to": "r2", "label": "migrate objects", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "via": [[200, 720], [200, 90], [1160, 90], [1160, 152]], "labelAt": [650, 75] }
   ],
   "cards": [
-    { "dot": "cyan", "title": "Primary query path", "items": ["Browser → Next.js → FastAPI /api/query", "FastAPI consulta o namespace production no Pinecone", "FastAPI envia contexto recuperado ao Gemini e devolve resposta + fontes"] },
-    { "dot": "emerald", "title": "Upload e persistência", "items": ["Browser pede presign e faz PUT direto no bucket R2 privado", "complete valida o objeto, baixa para /tmp e inicia o processamento", "Postgres guarda catálogo/quota; R2 e Pinecone mantêm os dados duráveis"] },
-    { "dot": "rose", "title": "Boundaries e controles", "items": ["Segredos e ADMIN_TOKEN ficam somente no backend", "Container não persiste SQLite nem uploads; roda como app não-root", "Migrations ocorrem antes do Uvicorn; exclusão fica limitada ao prefixo/namespace configurado"] }
+    { "dot": "cyan", "title": "Primary runtime path", "items": ["Browser → Next.js → FastAPI", "FastAPI coordinates ingestion, retrieval and generation", "API responses are private and no-store"] },
+    { "dot": "emerald", "title": "Durable state", "items": ["R2 stores private originals and derived media", "Postgres stores documents, objects, chunks, quotas, conversations, messages and feedback", "Pinecone stores vectors in visitor-derived namespaces"] },
+    { "dot": "rose", "title": "Trust boundaries", "items": ["R2, Postgres, Pinecone and Gemini are backend integrations", "The browser receives only public contracts and short-lived presigned URLs", "SQLite exists only as an opt-in read-only migration source"] }
   ]
 }

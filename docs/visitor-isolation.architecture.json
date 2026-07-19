@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RAG Multimodal — Isolamento por visitante",
+    "subtitle": "Bearer cookie assinado + ownership no Postgres + prefixo R2 + namespace Pinecone",
+    "output": "visitor-isolation.html",
+    "viewBox": [1540, 870]
+  },
+  "components": [
+    { "id": "visitor", "type": "external", "label": "Visitor", "sublabel": "anonymous browser", "pos": [40, 350], "size": [160, 64] },
+    { "id": "cookie", "type": "security", "label": "rag_visitor_id", "sublabel": "HttpOnly UUIDv4 + HMAC", "pos": [275, 350], "size": [190, 64], "tag": "server-generated" },
+    { "id": "middleware", "type": "backend", "label": "FastAPI middleware", "sublabel": "request.state.visitor_id", "pos": [525, 350], "size": [210, 64] },
+    { "id": "api", "type": "backend", "label": "Ownership checks", "sublabel": "Catalog + route guards", "pos": [795, 350], "size": [200, 64], "tag": "before read/write" },
+    { "id": "postgres", "type": "database", "label": "Postgres catalog", "sublabel": "visitor_id on documents / sessions", "pos": [1070, 115], "size": [230, 64] },
+    { "id": "r2", "type": "cloud", "label": "Cloudflare R2", "sublabel": "visitor_<uuid>/documents/<doc>", "pos": [1070, 295], "size": [230, 64] },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "namespace + metadata visitor_id", "pos": [1070, 475], "size": [230, 64] },
+    { "id": "ragguard", "type": "security", "label": "Retrieval guards", "sublabel": "namespace, filter, ready refs", "pos": [1070, 655], "size": [230, 64] },
+    { "id": "feedback", "type": "database", "label": "Messages + feedback", "sublabel": "composite visitor FKs", "pos": [795, 655], "size": [200, 64] },
+    { "id": "quota", "type": "security", "label": "Public controls", "sublabel": "HMAC client hash + quotas", "pos": [525, 655], "size": [210, 64] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "UNTRUSTED CLIENT INPUT", "wraps": ["visitor"] },
+    { "kind": "region", "label": "BACKEND TRUST BOUNDARY — CLIENT VALUES ARE NOT AUTHORITY", "wraps": ["cookie", "middleware", "api", "ragguard", "quota"] },
+    { "kind": "security-group", "label": "VISITOR-SCOPED PERSISTENCE", "wraps": ["postgres", "r2", "pinecone", "feedback"] }
+  ],
+  "connections": [
+    { "from": "visitor", "to": "cookie", "label": "receives signed cookie", "variant": "security", "labelAt": [238, 346] },
+    { "from": "cookie", "to": "middleware", "label": "cookie header", "variant": "security", "labelAt": [495, 346] },
+    { "from": "middleware", "to": "api", "label": "resolved UUID only", "variant": "emphasis", "labelAt": [765, 346] },
+    { "from": "api", "to": "postgres", "label": "WHERE owner = visitor", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[895, 330], [895, 80], [1030, 80], [1030, 147]], "labelAt": [930, 65] },
+    { "from": "api", "to": "r2", "label": "controlled key + exact prefix", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[1015, 382], [1040, 382], [1040, 327]], "labelAt": [1020, 428] },
+    { "from": "api", "to": "pinecone", "label": "derived namespace + filter", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[1015, 382], [1035, 382], [1035, 507]], "labelAt": [1025, 470] },
+    { "from": "pinecone", "to": "ragguard", "label": "candidate chunks", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [1180, 615] },
+    { "from": "ragguard", "to": "postgres", "label": "ready + owned revalidation", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [1260, 420] },
+    { "from": "api", "to": "feedback", "label": "response_id + same visitor", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [900, 510] },
+    { "from": "feedback", "to": "postgres", "label": "composite FK ownership", "variant": "security", "fromSide": "top", "toSide": "bottom", "via": [[895, 625], [895, 80], [1180, 80], [1180, 147]], "labelAt": [980, 95] },
+    { "from": "api", "to": "quota", "label": "reserve before upload/query", "variant": "security", "fromSide": "bottom", "toSide": "right", "via": [[895, 435], [895, 735], [750, 735], [750, 687]], "labelAt": [820, 733] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "What is associated", "items": ["Documents, upload states, chunks and object refs carry document ownership", "Conversations and messages carry visitor_id", "Feedback is keyed to the visitor and persisted response"] },
+    { "dot": "rose", "title": "Barriers against cross-visitor access", "items": ["Unsigned or adulterated cookies create a new identity", "IDs, namespace and object key from the client are never authorization", "Postgres, R2 and Pinecone apply independent ownership checks"] },
+    { "dot": "amber", "title": "Residual boundary", "items": ["The anonymous cookie is a bearer credential if stolen", "Postgres RLS/grants are backend defense-in-depth; public routes still apply explicit owner predicates", "Live provider integration requires staging validation"] }
+  ]
+}

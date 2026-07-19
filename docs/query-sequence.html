@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.11.0">
-  <title>RAG Multimodal — Runtime atual Diagram</title>
+  <title>RAG Multimodal — Sequência de consulta Diagram</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -525,14 +525,14 @@
     <div class="header">
       <div class="header-row">
         <div class="pulse-dot"></div>
-        <h1>RAG Multimodal — Runtime atual</h1>
+        <h1>RAG Multimodal — Sequência de consulta</h1>
       </div>
-      <p class="subtitle">Next.js + FastAPI; Postgres, R2, Pinecone e Gemini com isolamento por visitante</p>
+      <p class="subtitle">Identidade anônima, retrieval filtrado, Gemini e feedback opcional</p>
     </div>
 
     <!-- Main Diagram -->
     <div class="diagram-container">
-      <svg viewBox="0 0 1560 920" role="img" aria-label="RAG Multimodal — Runtime atual — Next.js + FastAPI; Postgres, R2, Pinecone e Gemini com isolamento por visitante (architecture diagram)">
+      <svg viewBox="0 0 920 1120" role="img" aria-label="RAG Multimodal — Sequência de consulta — Identidade anônima, retrieval filtrado, Gemini e feedback opcional (sequence diagram)">
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -555,140 +555,172 @@
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Boundaries (behind everything) -->
-        <rect x="215" y="325" width="750" height="449" rx="12" class="c-region" stroke-width="1"/>
-        <text x="223" y="343" class="t-cloud" font-size="9" font-weight="600">APPLICATION RUNTIME</text>
+        <!-- Time Segments -->
+        <rect x="48" y="160" width="824" height="170" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="62" y="178" class="t-dim" font-size="9" font-weight="600">01 · IDENTITY + PRECHECK</text>
 
-        <rect x="1020" y="90" width="280" height="654" rx="8" class="c-security-group" stroke-width="1"/>
-        <text x="1028" y="108" class="t-security" font-size="9" font-weight="600">MANAGED EXTERNAL SERVICES</text>
+        <rect x="48" y="340" width="824" height="310" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="62" y="358" class="t-dim" font-size="9" font-weight="600">02 · RETRIEVAL</text>
 
-        <rect x="10" y="715" width="555" height="159" rx="12" class="c-region" stroke-width="1"/>
-        <text x="18" y="733" class="t-cloud" font-size="9" font-weight="600">OPTIONAL LEGACY MIGRATION — NOT A RUNTIME DATA PATH</text>
+        <rect x="48" y="660" width="824" height="270" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="62" y="678" class="t-dim" font-size="9" font-weight="600">03 · GENERATION + FEEDBACK</text>
 
-        <!-- Connection paths (before components for correct z-order) -->
-        <path d="M 190 387 L 245 387" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 425 387 L 485 387" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 115 355 L 115 328 Q 115 320 123 320 L 972 320 Q 980 320 980 312 L 980 160 Q 980 152 988 152 L 1050 152" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 665 387 L 725 387" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 830 419 L 830 525" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 830 355 L 987 355 Q 995 355 995 347 L 995 192 Q 995 184 1003 184 L 1160 184" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 575 355 L 575 347.5 Q 575 340 575 332.5 L 575 268 Q 575 260 583 260 L 1002 260 Q 1010 260 1010 268 L 1010 324 Q 1010 332 1018 332 L 1050 332" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 935 387 L 984.5 387 Q 992.5 387 992.5 395 L 992.5 504 Q 992.5 512 1000.5 512 L 1050 512" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 935 387 L 942.5 387 Q 950 387 957.5 387 L 992 387 Q 1000 387 1000 395 L 1000 684 Q 1000 692 1008 692 L 1050 692" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 590 690 L 586.25 690 Q 582.5 690 582.5 686.25 L 582.5 422.75 Q 582.5 419 578.75 419 L 575 419" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 270 777 L 289.5 777 Q 297.5 777 297.5 785 L 297.5 814 Q 297.5 822 305.5 822 L 325 822" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 155 745 L 155 728 Q 155 720 155 728 L 155 857 Q 155 865 163 865 L 1152 865 Q 1160 865 1160 857 L 1160 364 L 1160 364" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 155 745 L 193.0067417910277 723.885143449429 Q 200 720 200 712 L 200 98 Q 200 90 208 90 L 1152 90 Q 1160 90 1160 98 L 1160 144 Q 1160 152 1160 160 L 1160 184" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <!-- Lifelines -->
+        <path d="M 62 142 L 62 1055" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 170 142 L 170 1055" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 278 142 L 278 1055" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 386 142 L 386 1055" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 494 142 L 494 1055" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 602 142 L 602 1055" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 710 142 L 710 1055" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
 
-        <!-- Components -->
-        <rect x="40" y="355" width="150" height="64" rx="6" class="c-mask"/>
-        <rect x="40" y="355" width="150" height="64" rx="6" class="c-external" stroke-width="1.5"/>
-        <text x="115" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Browser</text>
-        <text x="115" y="401" class="t-muted" font-size="9" text-anchor="middle">UI, SHA-256, PUT direto</text>
+        <!-- Messages -->
+        <path d="M 69 180 L 163 180" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <rect x="71" y="160" width="90" height="16" rx="3" class="c-mask"/>
+        <text x="116" y="170" class="t-backend" font-size="9" text-anchor="middle">submit question</text>
 
-        <rect x="245" y="355" width="180" height="64" rx="6" class="c-mask"/>
-        <rect x="245" y="355" width="180" height="64" rx="6" class="c-frontend" stroke-width="1.5"/>
-        <text x="335" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Next.js frontend</text>
-        <text x="335" y="401" class="t-muted" font-size="9" text-anchor="middle">React / fetch / credentials</text>
+        <path d="M 177 215 L 271 215" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <rect x="155.6" y="195" width="136.8" height="16" rx="3" class="c-mask"/>
+        <text x="224" y="205" class="t-backend" font-size="9" text-anchor="middle">POST /api/query + cookie</text>
 
-        <rect x="485" y="355" width="180" height="64" rx="6" class="c-mask"/>
-        <rect x="485" y="355" width="180" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="575" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">FastAPI</text>
-        <text x="575" y="401" class="t-muted" font-size="9" text-anchor="middle">REST / CORS / middleware</text>
-        <text x="575" y="411" class="t-backend" font-size="7" text-anchor="middle">Uvicorn 1 worker</text>
+        <path d="M 177 250 L 271 250" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="134.8" y="230" width="178.4" height="16" rx="3" class="c-mask"/>
+        <text x="224" y="240" class="t-security" font-size="9" text-anchor="middle">middleware resolves HMAC visitor</text>
+        <text x="189" y="268" class="t-dim" font-size="7">invalid cookie → new UUIDv4</text>
 
-        <rect x="725" y="355" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="725" y="355" width="210" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="830" y="385" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RAG services</text>
-        <text x="830" y="401" class="t-muted" font-size="9" text-anchor="middle">ingestion / retrieval / generation</text>
+        <path d="M 285 285 L 379 285" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="255.8" y="265" width="152.4" height="16" rx="3" class="c-mask"/>
+        <text x="332" y="275" class="t-security" font-size="9" text-anchor="middle">validate conversation owner</text>
 
-        <rect x="725" y="525" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="725" y="525" width="210" height="64" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="830" y="555" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Ephemeral workspace</text>
-        <text x="830" y="571" class="t-muted" font-size="9" text-anchor="middle">.tmp/processing; disposable</text>
-        <text x="830" y="581" class="t-database" font-size="7" text-anchor="middle">not durable</text>
+        <path d="M 379 320 L 285 320" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="266.2" y="300" width="131.60000000000002" height="16" rx="3" class="c-mask"/>
+        <text x="332" y="310" class="t-muted" font-size="9" text-anchor="middle">conversation / quota ok</text>
 
-        <rect x="1050" y="120" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="120" width="220" height="64" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="1160" y="150" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Cloudflare R2</text>
-        <text x="1160" y="166" class="t-muted" font-size="9" text-anchor="middle">private originals + derived</text>
-        <text x="1160" y="176" class="t-cloud" font-size="7" text-anchor="middle">S3 API / presigned PUT</text>
+        <path d="M 285 365 L 487 365" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <rect x="338.4" y="345" width="95.2" height="16" rx="3" class="c-mask"/>
+        <text x="386" y="355" class="t-backend" font-size="9" text-anchor="middle">embed query text</text>
 
-        <rect x="1050" y="300" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="300" width="220" height="64" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="1160" y="330" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Supabase Postgres</text>
-        <text x="1160" y="346" class="t-muted" font-size="9" text-anchor="middle">catalog / quotas / conversations</text>
-        <text x="1160" y="356" class="t-database" font-size="7" text-anchor="middle">asyncpg + Alembic</text>
+        <path d="M 487 400 L 285 400" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="333.2" y="380" width="105.60000000000001" height="16" rx="3" class="c-mask"/>
+        <text x="386" y="390" class="t-muted" font-size="9" text-anchor="middle">1536d query vector</text>
 
-        <rect x="1050" y="480" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="480" width="220" height="64" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="1160" y="510" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Pinecone</text>
-        <text x="1160" y="526" class="t-muted" font-size="9" text-anchor="middle">1536d dense vectors / visitor namespace</text>
+        <path d="M 285 445 L 595 445" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="356" y="425" width="168" height="16" rx="3" class="c-mask"/>
+        <text x="440" y="435" class="t-security" font-size="9" text-anchor="middle">query namespace + owner filter</text>
 
-        <rect x="1050" y="660" width="220" height="64" rx="6" class="c-mask"/>
-        <rect x="1050" y="660" width="220" height="64" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="1160" y="690" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Google Gemini</text>
-        <text x="1160" y="706" class="t-muted" font-size="9" text-anchor="middle">multimodal embeddings + answer</text>
+        <path d="M 595 480 L 285 480" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="389.8" y="460" width="100.4" height="16" rx="3" class="c-mask"/>
+        <text x="440" y="470" class="t-muted" font-size="9" text-anchor="middle">candidate matches</text>
 
-        <rect x="485" y="690" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="485" y="690" width="210" height="64" rx="6" class="c-security" stroke-width="1.5"/>
-        <text x="590" y="720" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Backend-only secrets</text>
-        <text x="590" y="736" class="t-muted" font-size="9" text-anchor="middle">Gemini / Pinecone / R2 / ADMIN_TOKEN</text>
+        <path d="M 285 525 L 379 525" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="245.39999999999998" y="505" width="173.20000000000002" height="16" rx="3" class="c-mask"/>
+        <text x="332" y="515" class="t-security" font-size="9" text-anchor="middle">validate ready chunks + objects</text>
 
-        <rect x="40" y="745" width="230" height="64" rx="6" class="c-mask"/>
-        <rect x="40" y="745" width="230" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="155" y="775" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Legacy migration tool</text>
-        <text x="155" y="791" class="t-muted" font-size="9" text-anchor="middle">tools/migrate_local_persistence.py</text>
-        <text x="155" y="801" class="t-backend" font-size="7" text-anchor="middle">opt-in; excluded from runtime</text>
+        <path d="M 379 560 L 285 560" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="292.2" y="540" width="79.60000000000001" height="16" rx="3" class="c-mask"/>
+        <text x="332" y="550" class="t-muted" font-size="9" text-anchor="middle">owned sources</text>
 
-        <rect x="325" y="790" width="210" height="64" rx="6" class="c-mask"/>
-        <rect x="325" y="790" width="210" height="64" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="430" y="820" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">SQLite + local uploads</text>
-        <text x="430" y="836" class="t-muted" font-size="9" text-anchor="middle">.tmp/rag.db / .tmp/uploads</text>
-        <text x="430" y="846" class="t-database" font-size="7" text-anchor="middle">legacy read-only source</text>
+        <path d="M 285 605 L 703 605" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="430.8" y="585" width="126.4" height="16" rx="3" class="c-mask"/>
+        <text x="494" y="595" class="t-security" font-size="9" text-anchor="middle">download allowed media</text>
+        <text x="297" y="623" class="t-dim" font-size="7">only when source has managed object key</text>
 
-        <!-- Connection labels -->
-        <rect x="172.2" y="341" width="91.6" height="14" rx="3" class="c-mask"/>
-        <text x="218" y="351" class="t-backend" font-size="8" text-anchor="middle">render / interact</text>
-        <rect x="402" y="341" width="106" height="14" rx="3" class="c-mask"/>
-        <text x="455" y="351" class="t-backend" font-size="8" text-anchor="middle">REST /api/* + cookie</text>
-        <rect x="503.8" y="295" width="72.4" height="14" rx="3" class="c-mask"/>
-        <text x="540" y="305" class="t-security" font-size="8" text-anchor="middle">presigned PUT</text>
-        <rect x="663.6" y="367" width="62.8" height="14" rx="3" class="c-mask"/>
-        <text x="695" y="377" class="t-backend" font-size="8" text-anchor="middle">orchestrate</text>
-        <rect x="762.6" y="470" width="134.8" height="14" rx="3" class="c-mask"/>
-        <text x="830" y="480" class="t-messagebus" font-size="8" text-anchor="middle">stage / download / dispose</text>
-        <rect x="905.4" y="255" width="149.2" height="14" rx="3" class="c-mask"/>
-        <text x="980" y="265" class="t-security" font-size="8" text-anchor="middle">HEAD / download / derived PUT</text>
-        <rect x="739" y="235" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="780" y="245" class="t-security" font-size="8" text-anchor="middle">catalog + quota</text>
-        <rect x="953.9" y="429.5" width="77.2" height="14" rx="3" class="c-mask"/>
-        <text x="992.5" y="439.5" class="t-backend" font-size="8" text-anchor="middle">upsert / query</text>
-        <rect x="921.6" y="593" width="86.8" height="14" rx="3" class="c-mask"/>
-        <text x="965" y="603" class="t-backend" font-size="8" text-anchor="middle">embed / generate</text>
-        <rect x="539.4" y="630" width="101.2" height="14" rx="3" class="c-mask"/>
-        <text x="590" y="640" class="t-security" font-size="8" text-anchor="middle">process environment</text>
-        <rect x="254.6" y="858" width="86.8" height="14" rx="3" class="c-mask"/>
-        <text x="298" y="868" class="t-messagebus" font-size="8" text-anchor="middle">read-only source</text>
-        <rect x="609" y="840" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="650" y="850" class="t-messagebus" font-size="8" text-anchor="middle">migrate catalog</text>
-        <rect x="609" y="65" width="82" height="14" rx="3" class="c-mask"/>
-        <text x="650" y="75" class="t-messagebus" font-size="8" text-anchor="middle">migrate objects</text>
+        <path d="M 703 640 L 285 640" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="433.4" y="620" width="121.2" height="16" rx="3" class="c-mask"/>
+        <text x="494" y="630" class="t-muted" font-size="9" text-anchor="middle">temporary media bytes</text>
+
+        <path d="M 285 695 L 487 695" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <rect x="315" y="675" width="142" height="16" rx="3" class="c-mask"/>
+        <text x="386" y="685" class="t-backend" font-size="9" text-anchor="middle">grounded prompt + sources</text>
+
+        <path d="M 487 740 L 285 740" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="320.2" y="720" width="131.60000000000002" height="16" rx="3" class="c-mask"/>
+        <text x="386" y="730" class="t-muted" font-size="9" text-anchor="middle">answer + used chunk ids</text>
+
+        <path d="M 285 785 L 379 785" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="240.2" y="765" width="183.6" height="16" rx="3" class="c-mask"/>
+        <text x="332" y="775" class="t-security" font-size="9" text-anchor="middle">persist message + source snapshot</text>
+
+        <path d="M 379 820 L 285 820" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="297.4" y="800" width="69.2" height="16" rx="3" class="c-mask"/>
+        <text x="332" y="810" class="t-muted" font-size="9" text-anchor="middle">response_id</text>
+
+        <path d="M 271 830 L 177 830" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="166" y="810" width="116" height="16" rx="3" class="c-mask"/>
+        <text x="224" y="820" class="t-muted" font-size="9" text-anchor="middle">200 answer + sources</text>
+
+        <path d="M 163 865 L 69 865" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <rect x="71" y="845" width="90" height="16" rx="3" class="c-mask"/>
+        <text x="116" y="855" class="t-muted" font-size="9" text-anchor="middle">render response</text>
+
+        <path d="M 69 900 L 163 900" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <rect x="45" y="880" width="142" height="16" rx="3" class="c-mask"/>
+        <text x="116" y="890" class="t-messagebus" font-size="9" text-anchor="middle">click useful / not useful</text>
+
+        <path d="M 177 940 L 271 940" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="171.2" y="920" width="105.60000000000001" height="16" rx="3" class="c-mask"/>
+        <text x="224" y="930" class="t-security" font-size="9" text-anchor="middle">POST /api/feedback</text>
+
+        <path d="M 285 980 L 379 980" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <rect x="240.2" y="960" width="183.6" height="16" rx="3" class="c-mask"/>
+        <text x="332" y="970" class="t-security" font-size="9" text-anchor="middle">lookup response + upsert feedback</text>
+
+        <!-- Activations -->
+        <rect x="273" y="215" width="10" height="650" rx="3" class="c-mask"/>
+        <rect x="273" y="215" width="10" height="650" rx="3" class="c-backend" stroke-width="1"/>
+        <rect x="381" y="285" width="10" height="535" rx="3" class="c-mask"/>
+        <rect x="381" y="285" width="10" height="535" rx="3" class="c-database" stroke-width="1"/>
+        <rect x="489" y="365" width="10" height="375" rx="3" class="c-mask"/>
+        <rect x="489" y="365" width="10" height="375" rx="3" class="c-cloud" stroke-width="1"/>
+        <rect x="597" y="445" width="10" height="35" rx="3" class="c-mask"/>
+        <rect x="597" y="445" width="10" height="35" rx="3" class="c-cloud" stroke-width="1"/>
+
+        <!-- Participants -->
+        <rect x="19" y="72" width="86" height="54" rx="6" class="c-mask"/>
+        <rect x="19" y="72" width="86" height="54" rx="6" class="c-external" stroke-width="1.5"/>
+        <text x="62" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Browser</text>
+        <text x="62" y="111" class="t-muted" font-size="7" text-anchor="middle">credentials: include</text>
+
+        <rect x="127" y="72" width="86" height="54" rx="6" class="c-mask"/>
+        <rect x="127" y="72" width="86" height="54" rx="6" class="c-frontend" stroke-width="1.5"/>
+        <text x="170" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Next.js</text>
+        <text x="170" y="111" class="t-muted" font-size="7" text-anchor="middle">queryRag()</text>
+
+        <rect x="235" y="72" width="86" height="54" rx="6" class="c-mask"/>
+        <rect x="235" y="72" width="86" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="278" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">FastAPI</text>
+        <text x="278" y="111" class="t-muted" font-size="7" text-anchor="middle">middleware + /api/query</text>
+
+        <rect x="343" y="72" width="86" height="54" rx="6" class="c-mask"/>
+        <rect x="343" y="72" width="86" height="54" rx="6" class="c-database" stroke-width="1.5"/>
+        <text x="386" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Postgres</text>
+        <text x="386" y="111" class="t-muted" font-size="7" text-anchor="middle">owner + persistence</text>
+
+        <rect x="451" y="72" width="86" height="54" rx="6" class="c-mask"/>
+        <rect x="451" y="72" width="86" height="54" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="494" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Gemini</text>
+        <text x="494" y="111" class="t-muted" font-size="7" text-anchor="middle">embed + generate</text>
+
+        <rect x="559" y="72" width="86" height="54" rx="6" class="c-mask"/>
+        <rect x="559" y="72" width="86" height="54" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="602" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Pinecone</text>
+        <text x="602" y="111" class="t-muted" font-size="7" text-anchor="middle">visitor namespace</text>
+
+        <rect x="667" y="72" width="86" height="54" rx="6" class="c-mask"/>
+        <rect x="667" y="72" width="86" height="54" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="710" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">R2</text>
+        <text x="710" y="111" class="t-muted" font-size="7" text-anchor="middle">optional media context</text>
 
         <!-- Legend -->
-        <text x="40" y="891" class="t-primary" font-size="9" font-weight="600">Legend</text>
-        <rect x="40" y="896" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-        <text x="60" y="904" class="t-muted" font-size="8">External</text>
-        <rect x="138" y="896" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-        <text x="158" y="904" class="t-muted" font-size="8">Frontend</text>
-        <rect x="236" y="896" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-        <text x="256" y="904" class="t-muted" font-size="8">Backend</text>
-        <rect x="329" y="896" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-        <text x="349" y="904" class="t-muted" font-size="8">Database</text>
-        <rect x="427" y="896" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-        <text x="447" y="904" class="t-muted" font-size="8">Cloud</text>
-        <rect x="510" y="896" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
-        <text x="530" y="904" class="t-muted" font-size="8">Security</text>
+        <text x="150" y="1046" class="t-primary" font-size="10" font-weight="600">Legend</text>
+        <path d="M 150 1066 L 184 1066" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <text x="193" y="1069" class="t-muted" font-size="8">request</text>
+        <path d="M 270 1066 L 304 1066" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+        <text x="313" y="1069" class="t-muted" font-size="8">return</text>
+        <path d="M 385 1066 L 419 1066" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <text x="428" y="1069" class="t-muted" font-size="8">security</text>
+        <path d="M 530 1066 L 564 1066" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <text x="573" y="1069" class="t-muted" font-size="8">async trace</text>
       </svg>
     </div>
 
@@ -696,44 +728,32 @@
     <div class="cards">
       <div class="card">
         <div class="card-header">
-          <div class="card-dot cyan"></div>
-          <h3>Primary runtime path</h3>
+          <div class="card-dot rose"></div>
+          <h3>Ownership is server-resolved</h3>
         </div>
         <ul>
-          <li>&bull; Browser → Next.js → FastAPI</li>
-          <li>&bull; FastAPI coordinates ingestion, retrieval and generation</li>
-          <li>&bull; API responses are private and no-store</li>
+          <li>&bull; The client sends no visitor_id, namespace or object key as authority</li>
+          <li>&bull; Every private API response is marked private, no-store</li>
+          <li>&bull; Feedback payload contains only response_id and useful</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot emerald"></div>
-          <h3>Durable state</h3>
+          <h3>Failure semantics</h3>
         </div>
         <ul>
-          <li>&bull; R2 stores private originals and derived media</li>
-          <li>&bull; Postgres stores documents, objects, chunks, quotas, conversations, messages and feedback</li>
-          <li>&bull; Pinecone stores vectors in visitor-derived namespaces</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot rose"></div>
-          <h3>Trust boundaries</h3>
-        </div>
-        <ul>
-          <li>&bull; R2, Postgres, Pinecone and Gemini are backend integrations</li>
-          <li>&bull; The browser receives only public contracts and short-lived presigned URLs</li>
-          <li>&bull; SQLite exists only as an opt-in read-only migration source</li>
+          <li>&bull; A response is returned only after Postgres persistence</li>
+          <li>&bull; Pinecone matches are rejected if the chunk is not ready/owned</li>
+          <li>&bull; Gemini MAX_TOKENS is treated as an incomplete response</li>
         </ul>
       </div>
     </div>
 
     <!-- Footer -->
     <p class="footer">
-      Architecture diagram &bull; Built with Archify<span class="no-print"> &bull; Press <kbd>T</kbd> for theme and <kbd>E</kbd> for export</span>
+      Sequence diagram &bull; Built with Archify<span class="no-print"> &bull; Press <kbd>T</kbd> for theme and <kbd>E</kbd> for export</span>
     </p>
   </div>
 

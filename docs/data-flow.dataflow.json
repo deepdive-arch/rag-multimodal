@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "RAG Multimodal — Fluxo de dados",
+    "subtitle": "Upload direto ao R2, ingestão efêmera, indexação e consulta fundamentada",
+    "output": "data-flow.html",
+    "viewBox": [1190, 780]
+  },
+  "stages": [
+    { "label": "Entrada" },
+    { "label": "Ingestão" },
+    { "label": "Persistência" },
+    { "label": "Recuperação" },
+    { "label": "Resposta" }
+  ],
+  "nodes": [
+    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "SHA-256 + PUT", "stage": 0, "row": 0, "tag": "visitor cookie" },
+    { "id": "apiupload", "type": "backend", "label": "FastAPI upload", "sublabel": "presign / complete", "stage": 0, "row": 2 },
+    { "id": "r2original", "type": "cloud", "label": "R2 original", "sublabel": "private object", "stage": 1, "row": 0 },
+    { "id": "workspace", "type": "database", "label": "Temporary workspace", "sublabel": "download + validation", "stage": 1, "row": 2, "tag": "deleted in finally" },
+    { "id": "extract", "type": "backend", "label": "Extract + normalize", "sublabel": "text / PDF / media", "stage": 1, "row": 4 },
+    { "id": "r2derived", "type": "cloud", "label": "R2 derived", "sublabel": "rendered / normalized", "stage": 2, "row": 0 },
+    { "id": "postgres", "type": "database", "label": "Postgres catalog", "sublabel": "docs / objects / chunks", "stage": 2, "row": 2 },
+    { "id": "geminiembed", "type": "cloud", "label": "Gemini embeddings", "sublabel": "1536 dimensions", "stage": 2, "row": 4 },
+    { "id": "pinecone", "type": "cloud", "label": "Pinecone", "sublabel": "visitor namespace", "stage": 3, "row": 2 },
+    { "id": "query", "type": "backend", "label": "RAG retrieval", "sublabel": "filter + ready check", "stage": 3, "row": 4 },
+    { "id": "geminigen", "type": "cloud", "label": "Gemini generation", "sublabel": "grounded answer", "stage": 4, "row": 1 },
+    { "id": "response", "type": "frontend", "label": "Answer + sources", "sublabel": "persisted response_id", "stage": 4, "row": 3 },
+    { "id": "feedback", "type": "security", "label": "Feedback", "sublabel": "visitor + message FK", "stage": 4, "row": 4 }
+  ],
+  "flows": [
+    { "from": "browser", "to": "apiupload", "label": "upload metadata", "classification": "visitor-scoped", "variant": "security" },
+    { "from": "browser", "to": "r2original", "label": "original bytes", "classification": "presigned direct PUT", "variant": "emphasis", "route": "vertical-channel", "channelX": 310, "labelAt": [310, 200] },
+    { "from": "apiupload", "to": "r2original", "label": "controlled object key", "classification": "private R2", "variant": "security", "labelAt": [190, 220] },
+    { "from": "r2original", "to": "workspace", "label": "download + HEAD invariants", "classification": "temporary", "variant": "dashed" },
+    { "from": "workspace", "to": "extract", "label": "validated file", "classification": "ephemeral", "variant": "emphasis" },
+    { "from": "extract", "to": "r2derived", "label": "derived media", "classification": "durable private object", "variant": "emphasis", "labelAt": [423, 470] },
+    { "from": "extract", "to": "geminiembed", "label": "text / media payload", "classification": "backend-only", "variant": "emphasis", "labelAt": [423, 656] },
+    { "from": "apiupload", "to": "postgres", "label": "document state + quota", "classification": "visitor ownership", "variant": "security", "route": "vertical-channel", "channelX": 520, "labelAt": [520, 428] },
+    { "from": "geminiembed", "to": "pinecone", "label": "vectors + metadata", "classification": "namespace + visitor filter", "variant": "emphasis" },
+    { "from": "extract", "to": "postgres", "label": "object + chunk refs", "classification": "traceability", "variant": "security", "route": "top-channel" },
+    { "from": "browser", "to": "query", "label": "question + history", "classification": "visitor cookie", "variant": "security", "route": "bottom-channel", "channelY": 700 },
+    { "from": "query", "to": "pinecone", "label": "query vector", "classification": "same visitor namespace", "variant": "emphasis", "route": "top-channel", "labelAt": [745, 428] },
+    { "from": "pinecone", "to": "query", "label": "candidate chunks", "classification": "metadata filtered", "variant": "dashed", "route": "vertical-channel", "channelX": 820 },
+    { "from": "query", "to": "postgres", "label": "ready chunk validation", "classification": "owner + status", "variant": "security", "route": "top-channel", "labelDy": -24 },
+    { "from": "query", "to": "geminigen", "label": "context + media", "classification": "grounded prompt", "variant": "emphasis" },
+    { "from": "geminigen", "to": "response", "label": "answer + sources", "classification": "persisted response", "variant": "emphasis" },
+    { "from": "response", "to": "postgres", "label": "message + source snapshot", "classification": "visitor-owned", "variant": "security", "route": "bottom-channel" },
+    { "from": "response", "to": "feedback", "label": "useful boolean", "classification": "same visitor + message", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "amber", "title": "Validation gates", "items": ["Extension, MIME, size, SHA-256 and signature are checked", "complete faz HEAD antes de iniciar processamento", "Document only reaches ready after vectors and catalog refs succeed"] },
+    { "dot": "rose", "title": "Data isolation", "items": ["R2 keys use visitor_<uuidhex>/documents/<doc_id>", "Pinecone namespace and metadata filter both require the visitor", "Postgres revalidates ready chunks and response ownership"] }
+  ]
+}
