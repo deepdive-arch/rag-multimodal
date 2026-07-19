@@ -41,6 +41,6 @@ Antes de persistir, o backend busca `response_id` no escopo do visitante atual. 
 - `source_ids` e `sources` persistidos;
 - `insufficient_context` e `created_at`.
 
-`feedback` mantém uma cópia operacional da pergunta, resposta e fontes, mas esses valores são sempre derivados de `messages` no backend. A migration `0006_feedback_response_ownership` cria unicidade em `(visitor_id, message_id)`; a `0007_response_ownership_constraints` remove feedback legado sem resposta, torna as duas colunas obrigatórias e cria chaves estrangeiras compostas com `ON DELETE CASCADE`. Uma nova avaliação do mesmo visitante para a mesma resposta atualiza `useful` e retorna o mesmo `feedback_id`.
+`feedback` mantém uma cópia operacional da pergunta, resposta e fontes, mas esses valores são sempre derivados de `messages` no backend. A migration `0006_feedback_response_ownership` cria unicidade em `(visitor_id, message_id)`; a `0007_response_owner_constraints` remove feedback legado sem resposta, torna as duas colunas obrigatórias e cria chaves estrangeiras compostas com `ON DELETE CASCADE`. Uma nova avaliação do mesmo visitante para a mesma resposta atualiza `useful` e retorna o mesmo `feedback_id`.
 
 Depois de `0007`, não permanecem linhas de feedback sem `visitor_id` ou `message_id`.

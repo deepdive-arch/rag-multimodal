@@ -136,7 +136,7 @@ Os testes em `tests/test_visitor_isolation.py`, `tests/test_pinecone_service.py`
 - Backend: `164 passed, 14 skipped, 1 warning`.
 - Ruff: aprovado.
 - `compileall`: aprovado.
-- Alembic offline `upgrade head --sql`: aprovado até `0007_response_ownership_constraints`.
+- Alembic offline `upgrade head --sql`: aprovado até `0007_response_owner_constraints`.
 - Alembic offline `downgrade head:base --sql`: aprovado.
 - `git diff --check`: aprovado.
 - Frontend ESLint: aprovado.

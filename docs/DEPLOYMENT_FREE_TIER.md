@@ -39,7 +39,7 @@ O filesystem do Render não é persistente. O catálogo, os objetos e os vetores
    python -m alembic current
    ```
 
-   O head esperado é `0007_response_ownership_constraints`. As revisões `0005` a `0007` adicionam ownership por visitante, histórico persistido e chaves estrangeiras compostas para conversa/resposta/feedback, mantendo os grants do catálogo revogados; o backend continua acessando o banco diretamente pela `DATABASE_URL`.
+   O head esperado é `0007_response_owner_constraints`. As revisões `0005` a `0007` adicionam ownership por visitante, histórico persistido e chaves estrangeiras compostas para conversa/resposta/feedback, mantendo os grants do catálogo revogados; o backend continua acessando o banco diretamente pela `DATABASE_URL`.
 
 5. No SQL Editor, confirme que as nove tabelas de catálogo têm RLS, não possuem policies públicas e que a consulta abaixo retorna zero:
 
@@ -371,7 +371,7 @@ Rollback de aplicação e rollback de dados são operações distintas:
 
 1. Antes do deploy, gere dump Postgres e cópia do prefixo R2; registre head Alembic, namespace/índice Pinecone e commit da aplicação.
 2. Se o novo container falhar antes de processar dados, use o rollback do Render para a imagem anterior e mantenha o schema no head mais novo quando ele for retrocompatível.
-3. Não faça downgrade de `0007_response_ownership_constraints`/`0005_visitor_isolation` em produção para desfazer ownership; restaure backup em staging e mantenha o head novo quando possível. Se for indispensável reverter `0004_revoke_data_api`, execute o downgrade apenas em janela controlada, pois isso restaura grants amplos de `anon`/`authenticated` e reduz a segurança.
+3. Não faça downgrade de `0007_response_owner_constraints`/`0005_visitor_isolation` em produção para desfazer ownership; restaure backup em staging e mantenha o head novo quando possível. Se for indispensável reverter `0004_revoke_data_api`, execute o downgrade apenas em janela controlada, pois isso restaura grants amplos de `anon`/`authenticated` e reduz a segurança.
 4. Não faça downgrade destrutivo de `0003`/`0002` em produção sem restaurar um backup testado. Não apague o namespace Pinecone ou o prefixo R2 durante rollback de código.
 5. Para inconsistência de dados, suspenda novos uploads, preserve originais, restaure Postgres/R2 em staging, reconcilie e só então promova a recuperação. Vetores podem ser reconstruídos explicitamente a partir dos originais; não reindexe automaticamente.
 
@@ -400,7 +400,7 @@ Rollback de aplicação e rollback de dados são operações distintas:
 
 ## Checklist de validação pós-deploy
 
-1. Confirmar `alembic current = 0007_response_ownership_constraints (head)`, nove tabelas com RLS, zero policies públicas e zero grants Data API no catálogo.
+1. Confirmar `alembic current = 0007_response_owner_constraints (head)`, nove tabelas com RLS, zero policies públicas e zero grants Data API no catálogo.
 2. Confirmar `/api/health` com database/R2/Pinecone prontos e Gemini configurado, sem segredos nos logs.
 3. Validar CORS do FastAPI com credenciais e um preflight R2 pela origem de produção; rejeitar localhost/origem não autorizada.
 4. Fazer upload TXT direto ao R2, `complete`, aguardar `ready`, consultar e abrir uma fonte pré-assinada.

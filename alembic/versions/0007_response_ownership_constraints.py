@@ -3,7 +3,7 @@
 from alembic import op
 
 
-revision = "0007_response_ownership_constraints"
+revision = "0007_response_owner_constraints"
 down_revision = "0006_feedback_response_ownership"
 branch_labels = None
 depends_on = None
