@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { ChatArea } from "@/components/ChatArea"
 import type { EmptyStateMode } from "@/components/EmptyState"
 import { Sidebar } from "@/components/Sidebar"
-import { checkHealth, deleteConversation, ensureVisitorSession, getConversation, getStats, isRequestCancelledError, listFiles, queryRag, sendFeedback, uploadFileDirect } from "@/lib/api"
+import { checkHealth, deleteConversation, deleteFile, ensureVisitorSession, getConversation, getStats, isRequestCancelledError, listFiles, queryRag, sendFeedback, uploadFileDirect } from "@/lib/api"
 import { clearConversationId, clearMessages, loadConversationId, loadPreferences, saveConversationId, savePreferences } from "@/lib/storage"
 import type { AnswerMode, HealthStatus, IngestedFile, Message, QueryFilters, QuerySubmissionResult, Stats, UploadPhase, UploadProgress } from "@/types"
 
@@ -26,6 +26,8 @@ export default function Page() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStates, setUploadStates] = useState<UploadProgress[]>([])
   const [uploadSummary, setUploadSummary] = useState({ success: 0, errors: [] as string[], catalogError: "" })
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null)
+  const [fileActionError, setFileActionError] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [catalogError, setCatalogError] = useState("")
@@ -135,6 +137,9 @@ export default function Page() {
     return errors.length === 0 && catalogUpdated
   }
   const handleCancelUpload = () => uploadControllerRef.current?.abort()
+  const finishFileRemoval = async (file: IngestedFile) => { if (filters.doc_id === file.doc_id) setFilters({}); setUploadStates([]); setUploadSummary({ success: 0, errors: [], catalogError: "" }); await refreshWorkspace() }
+  const removeFile = async (file: IngestedFile) => { setDeletingFileId(file.doc_id); setFileActionError(""); try { await deleteFile(file.doc_id); await finishFileRemoval(file) } catch (error) { setFileActionError(errorMessage(error, "Não foi possível excluir o arquivo.")) } finally { setDeletingFileId(null) } }
+  const handleRemoveFile = async (file: IngestedFile) => { if (window.confirm(`Excluir “${file.name}” do backend? Esta ação não pode ser desfeita.`)) await removeFile(file) }
   const handleQuery = async (question: string): Promise<QuerySubmissionResult> => {
     if (!canQuery) return "cancelled"
     const userMessage: Message = { id: messageId(), role: "user", content: question, created_at: new Date().toISOString() }
@@ -168,7 +173,7 @@ export default function Page() {
       <a className="skip-link" href="#conversation-content" tabIndex={isSidebarOpen ? -1 : 0} aria-hidden={isSidebarOpen}>Pular para a conversa</a>
       {isSidebarOpen && isMobileViewport && <button type="button" className="mobile-scrim" aria-label="Fechar biblioteca" onClick={() => setIsSidebarOpen(false)} />}
       <div className={`sidebar-container ${isSidebarOpen && isMobileViewport ? "is-open" : ""}`} aria-hidden={isMobileViewport && !isSidebarOpen ? "true" : undefined} inert={isMobileViewport && !isSidebarOpen ? true : undefined}>
-        <Sidebar sidebarRef={sidebarRef} isDrawerOpen={isMobileViewport && isSidebarOpen} files={files} filters={filters} topK={topK} answerMode={answerMode} publicDemo={healthStatus?.public_demo ?? null} isUploading={isUploading} uploadSummary={uploadSummary} uploadStates={uploadStates} onCancel={handleCancelUpload} onFiles={async (incoming) => { const succeeded = await handleFiles(incoming); if (succeeded) setIsSidebarOpen(false); return succeeded }} onFilters={setFilters} onTopK={setTopK} onAnswerMode={setAnswerMode} onClearChat={() => { if (window.confirm("Limpar a conversa atual?")) { if (conversationId) void deleteConversation(conversationId); setMessages([]); clearMessages(); clearConversationId(); setConversationId(null) } }} />
+        <Sidebar sidebarRef={sidebarRef} isDrawerOpen={isMobileViewport && isSidebarOpen} files={files} filters={filters} topK={topK} answerMode={answerMode} publicDemo={healthStatus?.public_demo ?? null} isUploading={isUploading} uploadSummary={uploadSummary} uploadStates={uploadStates} deletingFileId={deletingFileId} fileActionError={fileActionError} onCancel={handleCancelUpload} onFiles={async (incoming) => { const succeeded = await handleFiles(incoming); if (succeeded) setIsSidebarOpen(false); return succeeded }} onFilters={setFilters} onTopK={setTopK} onAnswerMode={setAnswerMode} onRemoveFile={(file) => void handleRemoveFile(file)} onClearChat={() => { if (window.confirm("Limpar a conversa atual?")) { if (conversationId) void deleteConversation(conversationId); setMessages([]); clearMessages(); clearConversationId(); setConversationId(null) } }} />
       </div>
       <div className="main-panel" aria-hidden={isMobileViewport && isSidebarOpen ? "true" : undefined}>
         <button ref={menuButtonRef} type="button" className="mobile-menu-button lg:hidden" aria-label={isSidebarOpen ? "Fechar biblioteca" : "Abrir biblioteca"} aria-controls="rag-sidebar" aria-expanded={isSidebarOpen} onClick={() => setIsSidebarOpen((value) => !value)}>{isSidebarOpen ? <X aria-hidden="true" size={18} /> : <Menu aria-hidden="true" size={18} />}</button>

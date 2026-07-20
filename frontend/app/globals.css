@@ -145,6 +145,8 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .file-state.failed { color: var(--danger); }
 .file-delete { display: inline-flex; min-height: 2.75rem; min-width: 2.75rem; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--text-muted); transition: border-color 180ms ease-out, background-color 180ms ease-out, color 180ms ease-out; }
 .file-delete:hover { border-color: color-mix(in srgb, var(--danger) 34%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); color: var(--danger); }
+.file-delete:disabled { cursor: not-allowed; opacity: 0.5; }
+.file-action-error { margin: 0.45rem 0 0; color: var(--danger); font-size: var(--font-size-meta); line-height: 1.45; overflow-wrap: anywhere; }
 
 .filter-list { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .filter-chip { min-height: 2.7rem; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-secondary); padding: 0.35rem 0.72rem; font-size: var(--font-size-meta); transition: border-color 180ms ease-out, color 180ms ease-out, background-color 180ms ease-out; }

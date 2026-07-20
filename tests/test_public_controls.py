@@ -68,13 +68,15 @@ def test_public_demo_health_contains_only_safe_limits(monkeypatch, tmp_path: Pat
     assert settings.rate_limit_secret not in response.text
 
 
-def test_frontend_public_surface_has_no_admin_secret_or_destructive_controls():
+def test_frontend_public_surface_has_no_admin_secret_or_global_destructive_controls():
     root = Path(__file__).resolve().parents[1] / "frontend"
     source = "\n".join(path.read_text(encoding="utf-8") for path in root.glob("**/*") if path.is_file() and path.suffix in {".ts", ".tsx", ".css", ".json", ".mjs"} and "node_modules" not in path.parts and "out" not in path.parts)
     assert "ADMIN_TOKEN" not in source
     assert "X-Admin-Token" not in source
     assert "onClearIndex" not in source
-    assert "onDelete" not in source
+    assert "DELETE_ALL" not in source
+    assert '"/api/index"' not in source
+    assert "deleteFile" in source
     assert "Ambiente público de demonstração" in source
 
 

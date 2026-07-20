@@ -110,6 +110,10 @@ export function getFileStatus(docId: string): Promise<IngestedFile> {
   return request<IngestedFile>(`/api/files/${encodeURIComponent(docId)}`)
 }
 
+export function deleteFile(docId: string): Promise<{ doc_id: string; status: "deleted" | "deleting"; stage: string | null; claimed: boolean }> {
+  return request(`/api/files/${encodeURIComponent(docId)}`, { method: "DELETE" })
+}
+
 export function retryFile(docId: string): Promise<UploadCompleteResponse> {
   return request<UploadCompleteResponse>(`/api/files/${encodeURIComponent(docId)}/retry`, { method: "POST" })
 }

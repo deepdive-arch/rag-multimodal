@@ -395,11 +395,8 @@ async def delete_file(doc_id: str, request: Request) -> dict[str, Any]:
     visitor_id = visitor_id_for_request(request)
     token = request.headers.get("X-Admin-Token", "")
     is_admin = bool(settings.admin_token) and hmac.compare_digest(token, settings.admin_token)
-    if not is_admin:
-        if not settings.public_demo_mode:
-            require_admin(request)
-        if not await Catalog(settings).get_file(doc_id, visitor_id):
-            raise FileNotFoundInCatalogError("Arquivo nÃ£o encontrado")
+    if not is_admin and not await Catalog(settings).get_file(doc_id, visitor_id):
+        raise FileNotFoundInCatalogError("Arquivo não encontrado")
     outcome = await asyncio.to_thread(delete_document, doc_id, settings, visitor_id) if not is_admin else await asyncio.to_thread(delete_document, doc_id, settings)
     if outcome.status == "deleting" and not outcome.claimed:
         return JSONResponse(status_code=202, content=outcome.as_dict())

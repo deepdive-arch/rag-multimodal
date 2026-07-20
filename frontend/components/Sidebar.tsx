@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, FileArchive, FileAudio, FileImage, FileText, FileVideo } from "lucide-react"
+import { ChevronDown, ChevronUp, FileArchive, FileAudio, FileImage, FileText, FileVideo, Loader2, Trash2 } from "lucide-react"
 import Image from "next/image"
 import type { Ref } from "react"
 import { useState } from "react"
@@ -16,6 +16,8 @@ interface SidebarProps {
   isUploading: boolean
   uploadSummary: { success: number; errors: string[]; catalogError: string }
   uploadStates: UploadProgress[]
+  deletingFileId: string | null
+  fileActionError: string
   publicDemo: PublicDemoConfig | null
   sidebarRef?: Ref<HTMLElement>
   onFiles: (files: File[]) => Promise<boolean>
@@ -23,6 +25,7 @@ interface SidebarProps {
   onFilters: (filters: QueryFilters) => void
   onTopK: (value: number) => void
   onAnswerMode: (mode: AnswerMode) => void
+  onRemoveFile: (file: IngestedFile) => void
   onClearChat: () => void
 }
 
@@ -69,6 +72,7 @@ export function Sidebar({ sidebarRef, isDrawerOpen = false, ...props }: SidebarP
           <div className="file-list">
             {props.files.length === 0 ? <p className="file-list-empty">A biblioteca está vazia. Adicione um arquivo para começar.</p> : props.files.map((file) => {
               const selected = props.filters.doc_id === file.doc_id
+              const deleting = props.deletingFileId === file.doc_id
               return <div key={file.doc_id} className={`file-row ${selected ? "is-selected" : ""}`}>
                 <button type="button" className="file-row-main" aria-pressed={selected} onClick={() => props.onFilters(selected ? {} : { doc_id: file.doc_id })}>
                   <span className="file-icon" aria-hidden="true"><FileIcon type={file.file_type} /></span>
@@ -78,9 +82,13 @@ export function Sidebar({ sidebarRef, isDrawerOpen = false, ...props }: SidebarP
                     <span className={`file-state ${file.status === "ready" ? "ready" : file.status === "failed" ? "failed" : "processing"}`} role={file.status === "processing" ? "status" : undefined}>{statusLabel(file.status)}</span>
                   </span>
                 </button>
+                <button type="button" className="file-delete" disabled={Boolean(props.deletingFileId)} aria-label={deleting ? `Removendo ${file.name}` : `Excluir ${file.name}`} title={deleting ? "Removendo arquivo" : "Excluir arquivo"} onClick={() => props.onRemoveFile(file)}>
+                  {deleting ? <Loader2 className="animate-spin" aria-hidden="true" size={16} /> : <Trash2 aria-hidden="true" size={16} />}
+                </button>
               </div>
             })}
           </div>
+          {props.fileActionError && <p className="file-action-error" role="alert">{props.fileActionError}</p>}
         </section>
         <FileFilters files={props.files} filters={props.filters} onChange={props.onFilters} />
         <section className="sidebar-section" aria-labelledby="settings-heading">

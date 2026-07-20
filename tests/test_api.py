@@ -162,12 +162,30 @@ def test_failed_generation_or_persistence_never_exposes_feedback_id(monkeypatch)
     assert "response_id" not in persistence_failure.json()
 
 
-def test_destructive_routes_require_admin_token(monkeypatch, tmp_path):
+def test_file_delete_rejects_a_document_not_owned_by_the_visitor(monkeypatch, tmp_path):
     settings = _upload_settings(tmp_path)
+    catalog = FakeUploadCatalog(None)
     monkeypatch.setattr("api.dependencies.get_settings", lambda: settings)
+    monkeypatch.setattr("api.server.get_settings", lambda: settings)
+    monkeypatch.setattr("api.server.Catalog", lambda _settings: catalog)
     with TestClient(app) as client:
         response = client.delete("/api/files/doc-1")
-    assert response.status_code == 403
+    assert response.status_code == 404
+
+
+def test_file_delete_accepts_the_visitor_owned_document(monkeypatch, tmp_path):
+    settings = _upload_settings(tmp_path)
+    catalog = FakeUploadCatalog(_upload_record(status="ready"))
+    deleted = []
+    monkeypatch.setattr("api.dependencies.get_settings", lambda: settings)
+    monkeypatch.setattr("api.server.get_settings", lambda: settings)
+    monkeypatch.setattr("api.server.Catalog", lambda _settings: catalog)
+    monkeypatch.setattr("api.server.delete_document", lambda *args: deleted.append(args) or DeletionOutcome("doc-1", "deleted", "completed", True))
+    with TestClient(app) as client:
+        response = client.delete("/api/files/doc-1")
+    assert response.status_code == 200
+    assert response.json()["status"] == "deleted"
+    assert len(deleted) == 1 and deleted[0][0:2] == ("doc-1", settings) and deleted[0][2]
 
 
 def test_destructive_route_accepts_valid_admin_token(monkeypatch, tmp_path):
