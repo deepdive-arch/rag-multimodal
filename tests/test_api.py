@@ -180,7 +180,10 @@ def test_file_delete_accepts_the_visitor_owned_document(monkeypatch, tmp_path):
     monkeypatch.setattr("api.dependencies.get_settings", lambda: settings)
     monkeypatch.setattr("api.server.get_settings", lambda: settings)
     monkeypatch.setattr("api.server.Catalog", lambda _settings: catalog)
-    monkeypatch.setattr("api.server.delete_document", lambda *args: deleted.append(args) or DeletionOutcome("doc-1", "deleted", "completed", True))
+    async def delete_owned(*args):
+        return deleted.append(args) or DeletionOutcome("doc-1", "deleted", "completed", True)
+
+    monkeypatch.setattr("api.server.delete_document_async", delete_owned)
     with TestClient(app) as client:
         response = client.delete("/api/files/doc-1")
     assert response.status_code == 200
@@ -192,7 +195,11 @@ def test_destructive_route_accepts_valid_admin_token(monkeypatch, tmp_path):
     settings = _upload_settings(tmp_path, admin_token="admin-secret")
     monkeypatch.setattr("api.dependencies.get_settings", lambda: settings)
     monkeypatch.setattr("api.server.get_settings", lambda: settings)
-    monkeypatch.setattr("api.server.delete_document", lambda _doc_id, _settings: DeletionOutcome("doc-1", "deleted", "completed", True))
+    async def delete_as_admin(_doc_id, _settings, visitor_id):
+        assert visitor_id is None
+        return DeletionOutcome("doc-1", "deleted", "completed", True)
+
+    monkeypatch.setattr("api.server.delete_document_async", delete_as_admin)
     with TestClient(app) as client:
         response = client.delete("/api/files/doc-1", headers={"X-Admin-Token": "admin-secret"})
     assert response.status_code == 200

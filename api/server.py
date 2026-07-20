@@ -56,8 +56,8 @@ from core.visitor import VISITOR_COOKIE_NAME, new_visitor_id, sign_visitor_cooki
 from db.catalog import Catalog
 from db.runtime import close_database, configure_database
 from services.generation import ChatHistoryMessage as GenerationHistory, generate_answer
-from services.deletion import cleanup_pending_documents
-from services.ingestion import clear_index, delete_document, ingest_file, process_uploaded_document, retry_document
+from services.deletion import cleanup_pending_documents, delete_document_async
+from services.ingestion import clear_index, ingest_file, process_uploaded_document, retry_document
 from services.pinecone_service import index_health
 from services.retrieval import RetrievedSource, retrieve
 from services.storage import (
@@ -397,7 +397,7 @@ async def delete_file(doc_id: str, request: Request) -> dict[str, Any]:
     is_admin = bool(settings.admin_token) and hmac.compare_digest(token, settings.admin_token)
     if not is_admin and not await Catalog(settings).get_file(doc_id, visitor_id):
         raise FileNotFoundInCatalogError("Arquivo não encontrado")
-    outcome = await asyncio.to_thread(delete_document, doc_id, settings, visitor_id) if not is_admin else await asyncio.to_thread(delete_document, doc_id, settings)
+    outcome = await delete_document_async(doc_id, settings, None if is_admin else visitor_id)
     if outcome.status == "deleting" and not outcome.claimed:
         return JSONResponse(status_code=202, content=outcome.as_dict())
     return outcome.as_dict()

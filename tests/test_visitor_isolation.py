@@ -239,9 +239,13 @@ def test_cross_visitor_delete_and_response_route_do_not_expose_resources(monkeyp
     owner, attacker = new_visitor_id(), new_visitor_id()
     catalog = ScopedApiCatalog(owner, attacker)
     deleted = []
+
+    async def record_delete(*args):
+        deleted.append(args)
+
     monkeypatch.setattr("api.server.get_settings", lambda: settings)
     monkeypatch.setattr("api.server.Catalog", lambda _settings: catalog)
-    monkeypatch.setattr("api.server.delete_document", lambda *args: deleted.append(args))
+    monkeypatch.setattr("api.server.delete_document_async", record_delete)
     with TestClient(app) as client:
         _set_visitor(client, attacker, settings)
         foreign_delete = client.delete(f"/api/files/{catalog.docs[owner]}")
