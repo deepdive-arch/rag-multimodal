@@ -24,10 +24,10 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: "/og-rag-multimodal.png",
+        url: "/og-rag-multimodal-v2.png",
         width: 1200,
         height: 630,
-        alt: "Interface do Agente RAG Multimodal para consulta inteligente de documentos e mídias",
+        alt: "Interface do Agente RAG Multimodal",
       },
     ],
   },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/og-rag-multimodal.png"],
+    images: ["/og-rag-multimodal-v2.png"],
   },
 }
 
