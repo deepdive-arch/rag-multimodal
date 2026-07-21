@@ -198,26 +198,100 @@ function isExpiredR2Error(error: unknown): boolean {
   return error instanceof R2UploadError && (error.status === 403 || error.status === 400)
 }
 
-async function waitForReady(complete: UploadCompleteResponse, notify: (phase: UploadPhase, progress: number) => void, signal?: AbortSignal): Promise<{ docId: string; duplicate: boolean }> {
+async function waitForReady(
+  complete: UploadCompleteResponse,
+  notify: (phase: UploadPhase, progress: number) => void,
+  signal?: AbortSignal,
+): Promise<{ docId: string; duplicate: boolean }> {
   let state = complete
+
   for (let attempt = 0; attempt < 300; attempt += 1) {
-    if (state.status === "ready") { notify("pronto", 100); return { docId: state.doc_id, duplicate: state.duplicate } }
-    if (state.status === "failed") throw new Error(state.error || "O processamento do arquivo falhou.")
+    if (signal?.aborted) {
+      throw new RequestCancelledError()
+    }
+
+    if (state.status === "ready") {
+      notify("pronto", 100)
+
+      return {
+        docId: state.doc_id,
+        duplicate: state.duplicate,
+      }
+    }
+
+    if (state.status === "failed") {
+      notify("falhou", 100)
+
+      throw new Error(
+        state.error || "O processamento do arquivo falhou.",
+      )
+    }
+
+    if (
+      state.status === "deleting" ||
+      state.status === "deleted"
+    ) {
+      notify("falhou", 100)
+
+      throw new Error(
+        "O arquivo foi removido durante o processamento. Exclua o registro antigo e envie o arquivo novamente.",
+      )
+    }
+
     notify(phaseForStatus(state.status), 100)
+
     await delay(1000, signal)
+
     try {
       const document = await getFileStatus(state.doc_id)
-      state = { doc_id: document.doc_id, duplicate: state.duplicate, status: document.status, chunks: document.chunks, warnings: document.warnings, error: document.error }
-    } catch (error) { if (attempt >= 2) throw error }
+
+      state = {
+        doc_id: document.doc_id,
+        duplicate: state.duplicate,
+        status: document.status,
+        chunks: document.chunks,
+        warnings: document.warnings,
+        error: document.error,
+      }
+    } catch (error) {
+      /*
+       * Tolera apenas falhas temporárias nas primeiras consultas.
+       * Depois disso, interrompe o polling e mostra o erro.
+       */
+      if (attempt >= 2) {
+        throw error
+      }
+    }
   }
-  throw new Error("O processamento excedeu o tempo de acompanhamento do upload.")
+
+  throw new Error(
+    "O processamento excedeu o tempo de acompanhamento do upload.",
+  )
 }
 
-function phaseForStatus(status: IngestedFile["status"]): UploadPhase {
-  if (status === "indexing") return "indexando"
-  if (status === "ready") return "pronto"
-  if (status === "failed") return "falhou"
-  return status === "processing" ? "processando" : "validando"
+function phaseForStatus(
+  status: IngestedFile["status"],
+): UploadPhase {
+  switch (status) {
+    case "processing":
+      return "processando"
+
+    case "indexing":
+      return "indexando"
+
+    case "ready":
+      return "pronto"
+
+    case "failed":
+    case "deleting":
+    case "deleted":
+      return "falhou"
+
+    case "pending_upload":
+    case "uploaded":
+    default:
+      return "validando"
+  }
 }
 
 function delay(milliseconds: number, signal?: AbortSignal): Promise<void> {

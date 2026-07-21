@@ -8,9 +8,10 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import and_, delete, func, or_, select, text, update
+from sqlalchemy import and_, delete, func, or_, select, text, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql.elements import ColumnElement
 
 from core.config import Settings
 from core.exceptions import CapacityExceededError, CatalogError, FileNotFoundInCatalogError, QuotaExceededError
@@ -150,8 +151,12 @@ class Catalog(CatalogRepository):
         return await self._fetch_one(condition)
 
     async def find_by_sha256(self, sha256: str, visitor_id: str | None = None) -> dict[str, Any] | None:
-        """Find a document by its unique content hash."""
-        return await self._fetch_one(_with_document_owner(Document.sha256 == sha256, visitor_id))
+        """Find an active document by its unique content hash."""
+        condition = and_(
+            Document.sha256 == sha256,
+            Document.status != "deleted",
+        )
+        return await self._fetch_one(_with_document_owner(condition, visitor_id))
 
     async def create_document(self, record: Mapping[str, Any]) -> dict[str, Any]:
         """Insert a document and its original object in one transaction."""
@@ -193,7 +198,15 @@ class Catalog(CatalogRepository):
         """Serialize public upload reservations with a short Postgres advisory lock."""
         async with self.database.session_factory.begin() as session:
             await _lock_public_quota(session)
-            existing = await session.scalar(select(Document).where(_with_document_owner(Document.sha256 == values[0]["sha256"], _record_visitor(values[0]))))
+            existing_condition = and_(
+                Document.sha256 == values[0]["sha256"],
+                Document.status != "deleted",
+            )
+            existing = await session.scalar(
+                select(Document).where(
+                    _with_document_owner(existing_condition, _record_visitor(values[0]))
+                )
+            )
             if existing:
                 return existing.doc_id, False
             counter = await _locked_usage_counter(session, client_hash, usage_date)
@@ -268,8 +281,35 @@ class Catalog(CatalogRepository):
         )
 
     async def mark_uploaded(self, doc_id: str, visitor_id: str | None = None) -> bool:
-        """Promote one pending upload exactly once."""
-        return await self._conditional_status(doc_id, "pending_upload", "uploaded", visitor_id)
+        """Promote one pending upload and clear its temporary upload expiry."""
+        now = datetime.now(UTC)
+        async with self.database.session_factory.begin() as session:
+            updated_doc_id = await session.scalar(
+                update(Document)
+                .where(
+                    Document.doc_id == _uuid(doc_id),
+                    Document.status == "pending_upload",
+                    _document_owner_clause(visitor_id),
+                )
+                .values(
+                    status="uploaded",
+                    upload_expires_at=None,
+                    updated_at=now,
+                )
+                .returning(Document.doc_id)
+            )
+            if updated_doc_id is not None:
+                session.add(
+                    IngestionEvent(
+                        document_id=updated_doc_id,
+                        event_type="status_transition",
+                        safe_details={
+                            "from_status": "pending_upload",
+                            "to_status": "uploaded",
+                        },
+                    )
+                )
+        return updated_doc_id is not None
 
     async def renew_upload(self, doc_id: str, expires_at: Any, visitor_id: str | None = None) -> None:
         """Refresh the server-side expiry for a pending upload."""
@@ -530,11 +570,24 @@ class Catalog(CatalogRepository):
             )
 
     async def list_expired_documents(self, limit: int, older_than: timedelta = timedelta()) -> list[dict[str, Any]]:
-        """Return bounded retention or abandoned-upload candidates."""
+        """Return bounded retention-expired or abandoned-upload candidates."""
         now = datetime.now(UTC)
         cutoff = now - older_than
-        expired = or_(Document.expires_at <= now, Document.upload_expires_at <= now)
-        eligible = and_(Document.status != "deleted", expired, Document.updated_at <= cutoff)
+
+        abandoned_upload = and_(
+            Document.status == "pending_upload",
+            Document.upload_expires_at.is_not(None),
+            Document.upload_expires_at <= now,
+        )
+        retention_expired = and_(
+            Document.status.in_(["uploaded", "processing", "indexing", "ready", "failed"]),
+            Document.expires_at.is_not(None),
+            Document.expires_at <= now,
+        )
+        eligible = and_(
+            or_(abandoned_upload, retention_expired),
+            Document.updated_at <= cutoff,
+        )
         return await self._fetch_many(eligible, limit=limit)
 
     async def list_deleting_documents(self, limit: int) -> list[dict[str, Any]]:
@@ -745,8 +798,15 @@ class Catalog(CatalogRepository):
         except ValueError:
             return False
         async with self.database.session_factory.begin() as session:
-            result = await session.execute(delete(Conversation).where(Conversation.conversation_id == selected, Conversation.visitor_id == owner))
-        return result.rowcount == 1
+            deleted_id = await session.scalar(
+                delete(Conversation)
+                .where(
+                    Conversation.conversation_id == selected,
+                    Conversation.visitor_id == owner,
+                )
+                .returning(Conversation.conversation_id)
+            )
+        return deleted_id is not None
 
     async def increment_usage(
         self, client_hash: str, usage_date: date, *, uploads: int = 0, queries: int = 0, bytes_uploaded: int = 0
@@ -838,20 +898,25 @@ class Catalog(CatalogRepository):
     async def _conditional_status(self, doc_id: str, current: str, target: str, visitor_id: str | None = None) -> bool:
         """Apply a status transition only if the document still has the expected state."""
         async with self.database.session_factory.begin() as session:
-            result = await session.execute(
+            updated_doc_id = await session.scalar(
                 update(Document)
-                .where(Document.doc_id == _uuid(doc_id), Document.status == current, _document_owner_clause(visitor_id))
+                .where(
+                    Document.doc_id == _uuid(doc_id),
+                    Document.status == current,
+                    _document_owner_clause(visitor_id),
+                )
                 .values(status=target, updated_at=datetime.now(UTC))
+                .returning(Document.doc_id)
             )
-            if result.rowcount == 1:
+            if updated_doc_id is not None:
                 session.add(
                     IngestionEvent(
-                        document_id=_uuid(doc_id),
+                        document_id=updated_doc_id,
                         event_type="status_transition",
                         safe_details={"from_status": current, "to_status": target},
                     )
                 )
-        return result.rowcount == 1
+        return updated_doc_id is not None
 
     async def _fetch_many(self, condition: Any, *, limit: int | None = None) -> list[dict[str, Any]]:
         """Fetch documents ordered newest first."""
@@ -1030,12 +1095,17 @@ def _record_visitor(values: Mapping[str, Any]) -> str | None:
     return str(value) if value else None
 
 
-def _document_owner_clause(visitor_id: str | None):
-    """Return a safe owner predicate or a true clause for trusted maintenance jobs."""
-    return Document.visitor_id == _visitor_uuid(visitor_id) if visitor_id else True
+def _document_owner_clause(visitor_id: str | None) -> ColumnElement[bool]:
+    """Return a safe owner predicate or a SQL true clause for maintenance jobs."""
+    if visitor_id:
+        return Document.visitor_id == _visitor_uuid(visitor_id)
+    return true()
 
 
-def _with_document_owner(condition: Any, visitor_id: str | None):
+def _with_document_owner(
+    condition: ColumnElement[bool],
+    visitor_id: str | None,
+) -> ColumnElement[bool]:
     """Combine one document condition with the optional server-owned visitor scope."""
     return and_(condition, _document_owner_clause(visitor_id))
 

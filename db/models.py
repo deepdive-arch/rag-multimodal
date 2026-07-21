@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgreSQLUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -44,7 +44,13 @@ class Document(Base):
     __table_args__ = (
         CheckConstraint("status IN ('pending_upload', 'uploaded', 'processing', 'indexing', 'ready', 'failed', 'deleting', 'deleted')", name="ck_documents_status"),
         Index("ix_documents_sha256", "sha256"),
-        Index("uq_documents_visitor_sha256", "visitor_id", "sha256", unique=True),
+        Index(
+            "uq_documents_visitor_sha256_active",
+            "visitor_id",
+            "sha256",
+            unique=True,
+            postgresql_where=text("status <> 'deleted'"),
+        ),
         Index("ix_documents_status", "status"),
         Index("ix_documents_created_at", "created_at"),
         Index("ix_documents_expires_at", "expires_at"),

@@ -49,7 +49,7 @@ export interface IngestedFile {
   mime_type: string
   chunks: number
   size_bytes: number
-  status: "pending_upload" | "uploaded" | "processing" | "indexing" | "ready" | "failed" | "deleting"
+  status: "pending_upload" | "uploaded" | "processing" | "indexing" | "ready" | "failed" | "deleting" | "deleted"
   warnings: string[]
   error?: string | null
   ingested_at: string
